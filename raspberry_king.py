@@ -1,10 +1,12 @@
 # 这里使用面向对象写所有的相关代码
-
 import RPi.GPIO as GPIO
 import cv2
 import time
 import numpy as np
+import serial
+import struct
 
+GPIO.setmode(GPIO.BCM)  # BCM编码
 class KeyInput:
     """
     这里是按键输入的类
@@ -14,7 +16,6 @@ class KeyInput:
         初始化
         :param pin_set: 设置的按键GPIO
         """
-        GPIO.setmode(GPIO.BCM)  # BCM编码
         self.pin = pin_set
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
@@ -55,6 +56,10 @@ class Video:
         self.copy = None
         self.dst = None
         self.edges = None
+        self.out_img = None
+        self.points_list = [[0,0],[0,0],[0,0],[0,0]]
+        self.cX = 0
+        self.cY = 0
 
     def read_frame(self):
         """
@@ -119,6 +124,97 @@ class Video:
         mask = cv2.bitwise_not(mask)  # 反转一下图像
         self.dst = cv2.GaussianBlur(mask, (5, 5), 0)  # 我需要的就是遮罩之后的图像,高斯模糊一些
 
+    def hsv_frame_red(self):
+        """
+        HSV遮罩
+        :return:
+        """
+        # 转换到HSV颜色空间
+        blurred = cv2.GaussianBlur(self.frame, (5, 5), 0)
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+        # 裁剪成框图内的图像
+        # hsv = hsv[50:430, 130:510]
+        lower_black = np.array([86, 33, 159])
+        upper_black = np.array([180, 208, 248])
+        # 使用HSV阈值过滤黑色
+        mask = cv2.inRange(hsv, lower_black, upper_black)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+        mask = cv2.dilate(mask, kernel, iterations=1)
+        mask = cv2.erode(mask, kernel, iterations=1)
+        mask = cv2.bitwise_not(mask)  # 反转一下图像
+        self.dst = cv2.GaussianBlur(mask, (5, 5), 0)  # 我需要的就是遮罩之后的图像,高斯模糊一些
+
+    def find_red_light(self):
+        # 找到所有轮廓
+        edges = cv2.Canny(self.dst, threshold1=30, threshold2=60)
+        cv2.imshow('Edge Detection', edges)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        print(len(contours))
+        # 找到最大的轮廓
+        max_contour = max(contours, key=cv2.contourArea) if contours else None
+
+        # 如果找到了最大轮廓，绘制它
+        if max_contour is not None:
+            print("i in ")
+            cv2.drawContours(self.frame, [max_contour], -1, (0, 255, 0), 2)
+
+            # 计算轮廓的中心点
+            M = cv2.moments(max_contour)
+            if M["m00"] != 0:
+                self.cX = int(M["m10"] / M["m00"])
+                self.cY = int(M["m01"] / M["m00"])
+                # 绘制中心点
+                cv2.circle(self.frame, (self.cX, self.cY), 5, (0, 0, 255), -1)
+            else:
+                # 这说明没有找到点 直接返回0，0 用于PID计算和作用
+                self.cX = 0
+                self.cY = 0
+
+        # 显示带有绘制的最大轮廓和中心点的图像
+        cv2.imshow('Detected Contour', self.dst)
+        cv2.imshow('Edge Detection', edges)
+        cv2.imshow('Detected Contour', self.frame)
+
+    def gray_find_red_light(self):
+        gray = cv2.cvtColor(self.frame, cv2.COLOR_BGR2GRAY)
+
+        # 应用高斯模糊
+        blurred = cv2.GaussianBlur(gray, (15, 15), 0)
+        cv2.imshow('Gray_blurred', blurred)
+
+        # 设置阈值
+        _, thresh = cv2.threshold(blurred, 200, 255, cv2.THRESH_BINARY)
+        cv2.imshow('Threshold', thresh)
+
+        # 找到轮廓
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        # 找到最大轮廓并绘制
+        max_contour = max(contours, key=cv2.contourArea) if contours else None
+        if max_contour is not None:
+            # 计算轮廓的矩
+            M = cv2.moments(max_contour)
+
+            # 使用矩计算中心点
+            if M["m00"] != 0:
+                self.cX = M["m10"] / M["m00"]
+                self.cY = M["m01"] / M["m00"]
+            else:
+                self.cX, self.cY = 0.0, 0.0
+
+            # 绘制轮廓
+            cv2.drawContours(self.frame, [max_contour], -1, (0, 255, 0), 2)
+
+            # 绘制中心点
+            cv2.circle(self.frame, (int(self.cX), int(self.cY)), 5, (0, 0, 255), -1)  # 将坐标转为整数以便绘图
+
+            # 输出中心点坐标
+            print(f"中心点坐标: ({self.cX}, {self.cY})")
+
+        # 显示结果
+        cv2.imshow('Detected Bright Spot', self.frame)
+        cv2.imshow('Threshold', thresh)
+
     def edge_frame(self):
         """
         边缘检测
@@ -126,4 +222,282 @@ class Video:
         """
         self.edges = cv2.Canny(self.dst, threshold1=30, threshold2=60)
         cv2.imshow('Edge Detection', self.edges)
+
+    def corner_detect(self):
+        self.out_img = self.copy[50:430, 130:510]  # 裁剪后的图像
+        # 找到所有轮廓
+        contours, _ = cv2.findContours(self.edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 这个方法没有层级 可能识别多个轮廓
+        # print("轮廓数量：%d" % len(contours))
+        # 定义面积范围
+        min_area = 0.1 * self.out_img.shape[0] * self.out_img.shape[1]
+        max_area = 0.9 * self.out_img.shape[0] * self.out_img.shape[1]
+
+        # 过滤轮廓并找到每个轮廓的最小包围矩形
+        filtered_contours = []
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if min_area < area < max_area:
+                rect = cv2.minAreaRect(contour)
+                box = cv2.boxPoints(rect)
+                box = np.int0(box)
+                filtered_contours.append(box)
+
+        # 打印检测到的轮廓数量
+        print("检测到的轮廓数量:", len(filtered_contours))
+
+        # 绘制过滤后的轮廓并打印坐标
+        for idx, contour in enumerate(filtered_contours):
+            # cv2.drawContours(self.out_img, [contour], -1, (0, 255, 0), 2)
+            print(f"轮廓{idx} 坐标点为：")
+            print(contour)
+        # 显示带有轮廓的图像
+        cv2.imshow('Contours', self.out_img)
+
+        # 调用上述函数来合并接近的轮廓
+        merged_contours = self.merge_close_contours(filtered_contours, threshold=50)
+        print("合并后的轮廓数量:", len(merged_contours))
+        for idx, contour in enumerate(merged_contours):
+            # cv2.drawContours(self.out_img, [contour], -1, (0, 255, 0), 2)
+            # print(f"合并后的轮廓{idx} 坐标点为：")
+            print(contour)
+        # 确保只有两个轮廓
+        if len(merged_contours) == 2:
+            # 取两个轮廓的平均值得到中间轮廓
+            weight_outer = 0.7
+            weight_inner = 0.3
+
+            middle_contour = weight_outer * merged_contours[0] + weight_inner * merged_contours[1]
+            # 排序角点顺时针
+            middle_contour_sorted = self.sort_clockwise(middle_contour)
+            # 保存到self.list
+            self.points_list = middle_contour_sorted.tolist()
+            # 将结果转换为整数坐标
+            middle_contour = middle_contour.astype(np.int0)
+            # middle_contour = (merged_contours[0] + merged_contours[1]) / 2
+
+            # 打印中间轮廓的坐标
+            print("框上的点坐标为：")
+            self.points_list = self.normalized_xy(self.points_list)  # 归一化一下坐标
+            print(self.points_list)
+
+            # 绘制中间轮廓
+            cv2.drawContours(self.out_img, [middle_contour], -1, (0, 255, 0), 2)
+            # 绘制中间轮廓的四个角点上的小圆圈
+            for point in middle_contour:
+                cv2.circle(self.out_img, tuple(point), 5, (0, 0, 255), -1)
+            cv2.imshow('Contours', self.out_img)
+        else:
+            print("请确保合并后有两个轮廓！")
+
+        # cv2.imshow('Contours', self.out_img)
+
+    def merge_close_contours(self, contours, threshold=10):
+        """
+        合并接近的轮廓
+        :param contours: 输入的轮廓
+        :param threshold: 合并的阈值
+        :return:
+        """
+        merged_contours = []
+        merged_flags = [False] * len(contours)
+
+        for i in range(len(contours)):
+            if merged_flags[i]:
+                continue
+
+            # 计算轮廓i与其他轮廓之间的距离
+            distances = [np.sum(np.abs(contours[i] - contours[j])) for j in range(len(contours))]
+
+            # 查找与轮廓i距离小于阈值的所有轮廓
+            close_contours = [contours[j] for j in range(len(contours)) if distances[j] < threshold and not merged_flags[j]]
+
+            # 将这些轮廓合并为一个
+            if close_contours:
+                merged_contour = np.mean(close_contours, axis=0).astype(np.int0)
+                merged_contours.append(merged_contour)
+                for j in range(len(contours)):
+                    if distances[j] < threshold:
+                        merged_flags[j] = True
+
+        return merged_contours
+
+    def sort_clockwise(self, points):
+        """
+        顺时针排序
+        :return:
+        """
+        # 计算几何中心
+        center = np.mean(points, axis=0)
+
+        # 使用arctan2计算每个角点相对于中心的角度
+        angles = np.arctan2(points[:, 1] - center[1], points[:, 0] - center[0])
+
+        # 对角点进行排序
+        sorted_points = points[np.argsort(angles)[::-1]]  # 顺时针排序
+
+        return sorted_points
+
+    def normalized_xy(self, point_input):
+        """
+
+        :return:
+        """
+        # 保存归一化后的坐标
+        normalized_points = []
+
+        # 保存归一化后的坐标
+        for point in self.points_list:
+            """
+            总共的坐标长宽都是380乘以380像素点，从左上角为起点搬运到了190，190为原点
+            原点按照正常的坐欧拉坐标系建系，由于是50cm对应的380像素点（归一化就是除以380乘以50）
+            得到cm的单位坐标
+            """
+            # 保留小数点后两位，即精度到0.01cm 0.1mm
+            x = round((point[0] - 190) / 380 * 50, 2)
+            y = round((-point[1] + 190) / 380 * 50, 2)
+            normalized_points.append([x, y])
+
+        # 打印归一化后的坐标
+        # print("归一化后的坐标为：")
+        # print(normalized_points)
+
+        return normalized_points
+
+class Serial:
+    """
+    这里是串口的类
+    """
+    def __init__(self, port="/dev/ttyAMA0", baudrate=115200):
+        self.port = port
+        self.baudrate = baudrate
+        self.ser = serial.Serial(self.port, self.baudrate)
+        self.data = []
+        self.data = [0] * 32  # 初始化32个数据位为0
+
+    def send_frame(self):
+        """
+        发送帧头为FF，帧尾为FE，中间数据位为32位的数据
+        :return:
+        """
+        frame_head = "FF"
+        frame_data = "".join(f"{d:02X}" for d in self.data)  # 将数据位转换成16进制字符串格式
+        frame_end = "FE"
+
+        frame = frame_head + frame_data + frame_end
+        frame_bytes = bytes.fromhex(frame)  # 将帧转换成字节格式
+
+        self.ser.write(frame_bytes)
+    def float_to_hex(self, f):
+        return hex(struct.unpack('<I', struct.pack('<f', f))[0])
+
+    def send_coordinates(self, coordinates_list):
+        """
+        将坐标列表转换为HEX数据包并通过串口发送
+        :param coordinates_list: 浮点坐标列表
+        :return: None
+        """
+        frame_head = "FF"
+        frame_data = ""
+        for point in coordinates_list:
+            for coord in point:
+                frame_data += self.float_to_hex(coord)[2:].zfill(8)  # 转换为HEX并去掉"0x"前缀
+        frame_end = "FE"
+
+        frame = frame_head + frame_data + frame_end
+        frame_bytes = bytes.fromhex(frame)  # 将帧转换成字节格式
+
+        self.ser.write(frame_bytes)
+
+    def send_coordinates_as_string(self, coordinates_list):
+        frame_head = "FF"
+        frame_end = "FE"
+        frame_data = ",".join([f"{x},{y}" for x, y in coordinates_list])
+
+        frame = frame_head + frame_data + frame_end
+        self.ser.write(frame.encode('utf-8'))  # 将字符串转换为字节串并发送
+
+
+
+class DualServo:
+    def __init__(self, pin1=17, pin2=27):
+        self.pins = [pin1, pin2]
+        self.current_angles = [135, 135]
+
+        GPIO.setmode(GPIO.BCM)
+        for pin in self.pins:
+            GPIO.setup(pin, GPIO.OUT)
+        self.pwms = [GPIO.PWM(pin, 50) for pin in self.pins]
+        for pwm in self.pwms:
+            pwm.start(0)
+
+    def set_angle(self, servo_index, angle):
+        duty = 2.5 + (angle / 270) * (12.5 - 2.5)
+        self.pwms[servo_index].ChangeDutyCycle(duty)
+        self.current_angles[servo_index] = angle
+
+    def move_to_angle(self, target_angle1, speed1, target_angle2, speed2):
+        max_steps = max(abs(target_angle1 - self.current_angles[0]) / speed1,
+                       abs(target_angle2 - self.current_angles[1]) / speed2) * 50
+        max_steps = int(max_steps)
+
+        for step in range(max_steps):
+            for i, (target_angle, speed) in enumerate([(target_angle1, speed1), (target_angle2, speed2)]):
+                angle_diff = target_angle - self.current_angles[i]
+                step_size = speed / 50.0
+                direction = 1 if angle_diff > 0 else -1
+                self.current_angles[i] += direction * step_size
+                self.set_angle(i, self.current_angles[i])
+            time.sleep(0.02) # 50Hz更新频率
+
+        self.set_angle(0, target_angle1)
+        self.set_angle(1, target_angle2)
+
+    def stop(self):
+        for pwm in self.pwms:
+            pwm.stop()
+        GPIO.cleanup()
+
+class IncrementalPID:
+    def __init__(self, kp_x, ki_x, kd_x, kp_y, ki_y, kd_y):
+        # X方向的PID参数
+        self.kp_x = kp_x
+        self.ki_x = ki_x
+        self.kd_x = kd_x
+        self.prev_error_x = 0
+        self.delta_error_x = 0
+
+        # Y方向的PID参数
+        self.kp_y = kp_y
+        self.ki_y = ki_y
+        self.kd_y = kd_y
+        self.prev_error_y = 0
+        self.delta_error_y = 0
+
+    def calculate(self, current_x, current_y, target_x=320, target_y=240):
+        # 计算X方向的误差
+        error_x = target_x - current_x
+        delta_error_x = error_x - self.prev_error_x
+        pid_output_x = self.kp_x * delta_error_x + self.ki_x * error_x + self.kd_x * (delta_error_x - self.delta_error_x)
+        self.prev_error_x = error_x
+        self.delta_error_x = delta_error_x
+
+        # 计算Y方向的误差
+        error_y = target_y - current_y
+        delta_error_y = error_y - self.prev_error_y
+        pid_output_y = self.kp_y * delta_error_y + self.ki_y * error_y + self.kd_y * (delta_error_y - self.delta_error_y)
+        self.prev_error_y = error_y
+        self.delta_error_y = delta_error_y
+
+        return pid_output_x, pid_output_y
+
+
+# 示例用法
+if __name__ == "__main__":
+    servos = DualServo(17, 27)
+    # 以每秒15度和20度的速度将两个舵机分别旋转到90度和60度
+    servos.move_to_angle(135, 90, 135, 90)
+    time.sleep(5)
+
+    servos.stop()
+    print("test done")
 
