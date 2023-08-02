@@ -6,6 +6,7 @@ import raspberry_king
 from util.get_map import show_lcd
 import cv2
 import numpy as np
+import time
 
 
 # 摄像头反复调用
@@ -35,6 +36,10 @@ while True:
 if __name__ == "__main__":
     cap = raspberry_king.Video(camera=cam)
     pid_controller = raspberry_king.IncrementalPID(kp_x=1.0, ki_x=0.0, kd_x=0.0, kp_y=1.0, ki_y=0.0, kd_y=0.0)
+    servos = raspberry_king.DualServo(17, 27)
+    # 以每秒15度和20度的速度将两个舵机分别旋转到90度和60度
+    servos.move_to_angle(135, 90, 135, 90)
+    servos.stop()
     while True:
 
         cap.read_frame()

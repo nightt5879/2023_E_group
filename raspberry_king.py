@@ -419,6 +419,9 @@ class Serial:
 
 
 class DualServo:
+    """
+    这里是舵机的类,GPT写的 舵机做烂了 懒得写注释了 你就说能不能用嘛
+    """
     def __init__(self, pin1=17, pin2=27):
         self.pins = [pin1, pin2]
         self.current_angles = [135, 135]
@@ -434,6 +437,16 @@ class DualServo:
         duty = 2.5 + (angle / 270) * (12.5 - 2.5)
         self.pwms[servo_index].ChangeDutyCycle(duty)
         self.current_angles[servo_index] = angle
+
+    def move_by_direction(self, direction_x, speed_x, direction_y, speed_y):
+        # 限制角度范围
+        target_angle_x = self.current_angles[0] + direction_x * speed_x
+        target_angle_x = max(90, min(180, target_angle_x)) # 限制X方向角度在90到180度之间
+
+        target_angle_y = self.current_angles[1] + direction_y * speed_y
+        target_angle_y = max(100, min(180, target_angle_y)) # 限制Y方向角度在100到180度之间
+
+        self.move_to_angle(target_angle_x, speed_x, target_angle_y, speed_y)
 
     def move_to_angle(self, target_angle1, speed1, target_angle2, speed2):
         max_steps = max(abs(target_angle1 - self.current_angles[0]) / speed1,
@@ -451,6 +464,9 @@ class DualServo:
 
         self.set_angle(0, target_angle1)
         self.set_angle(1, target_angle2)
+
+    def freeze(self):
+        self.move_to_angle(self.current_angles[0], 0, self.current_angles[1], 0)
 
     def stop(self):
         for pwm in self.pwms:
@@ -493,11 +509,9 @@ class IncrementalPID:
 
 # 示例用法
 if __name__ == "__main__":
-    servos = DualServo(17, 27)
-    # 以每秒15度和20度的速度将两个舵机分别旋转到90度和60度
-    servos.move_to_angle(135, 90, 135, 90)
-    time.sleep(5)
-
-    servos.stop()
+    servos = DualServo()
+    servos.move_by_direction(direction_x=1, speed_x=5, direction_y=-1, speed_y=5)
+    time.sleep(2)
+    servos.freeze()  # 停下舵机
     print("test done")
 
