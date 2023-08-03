@@ -70,7 +70,7 @@ class Video:
         if not ret:
             print("read frame failed")  # 说明摄像头读取有问题
 
-    def show_frame(self,window_name="frame",img_show=None):
+    def show_frame(self,window_name="frame",img_show=None,wait_set=1):
         """
         显示视频帧
         :return:
@@ -78,7 +78,7 @@ class Video:
         if img_show is None:  # 如果不输入图片，就显示读取原始的视频帧
             img_show = self.frame
         cv2.imshow(window_name, img_show)
-        cv2.waitKey(1)
+        cv2.waitKey(wait_set)
 
     def draw_circle(self):
         self.copy = self.frame.copy()
@@ -183,14 +183,24 @@ class Video:
         cv2.imshow('Gray_blurred', blurred)
 
         # 设置阈值
-        _, thresh = cv2.threshold(blurred, 200, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(blurred, 230, 255, cv2.THRESH_BINARY)
         cv2.imshow('Threshold', thresh)
 
         # 找到轮廓
         contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        # 找到最大轮廓并绘制
-        max_contour = max(contours, key=cv2.contourArea) if contours else None
+        # 计算摄像头的总面积
+        total_area = self.frame.shape[0] * self.frame.shape[1]
+
+        # 找到面积小于0.3倍总摄像头面积的最大轮廓
+        max_contour = None
+        max_area = 0
+        for contour in contours:
+            area = cv2.contourArea(contour)
+            if area > max_area and area < total_area * 0.1:
+                max_area = area
+                max_contour = contour
+
         if max_contour is not None:
             # 计算轮廓的矩
             M = cv2.moments(max_contour)
@@ -438,35 +448,36 @@ class DualServo:
         self.pwms[servo_index].ChangeDutyCycle(duty)
         self.current_angles[servo_index] = angle
 
-    def move_by_direction(self, direction_x, speed_x, direction_y, speed_y):
-        # 限制角度范围
-        target_angle_x = self.current_angles[0] + direction_x * speed_x
-        target_angle_x = max(90, min(180, target_angle_x)) # 限制X方向角度在90到180度之间
-
-        target_angle_y = self.current_angles[1] + direction_y * speed_y
-        target_angle_y = max(100, min(180, target_angle_y)) # 限制Y方向角度在100到180度之间
-
+    def move_by_direction(self, direction_x=0, speed_x=0, direction_y=0, speed_y=0):
+        target_angle_x = self.current_angles[0] + direction_x * speed_x if direction_x != 0 else None
+        target_angle_y = self.current_angles[1] + direction_y * speed_y if direction_y != 0 else None
         self.move_to_angle(target_angle_x, speed_x, target_angle_y, speed_y)
 
-    def move_to_angle(self, target_angle1, speed1, target_angle2, speed2):
-        max_steps = max(abs(target_angle1 - self.current_angles[0]) / speed1,
-                       abs(target_angle2 - self.current_angles[1]) / speed2) * 50
-        max_steps = int(max_steps)
+    def move_to_angle(self, target_angle_x=None, speed_x=0, target_angle_y=None, speed_y=0):
+        if target_angle_x is not None:
+            target_angle_x = max(90, min(180, target_angle_x))  # 限制X方向角度在90到180度之间
 
-        for step in range(max_steps):
-            for i, (target_angle, speed) in enumerate([(target_angle1, speed1), (target_angle2, speed2)]):
-                angle_diff = target_angle - self.current_angles[i]
-                step_size = speed / 50.0
+        if target_angle_y is not None:
+            target_angle_y = max(100, min(180, target_angle_y))  # 限制Y方向角度在100到180度之间
+
+        for i, (target_angle, speed, current_angle) in enumerate([(target_angle_x, speed_x, self.current_angles[0]),
+                                                                  (target_angle_y, speed_y, self.current_angles[1])]):
+            if target_angle is not None:
+                angle_diff = target_angle - current_angle
                 direction = 1 if angle_diff > 0 else -1
-                self.current_angles[i] += direction * step_size
-                self.set_angle(i, self.current_angles[i])
-            time.sleep(0.02) # 50Hz更新频率
+                steps = int(abs(angle_diff) / speed * 50) if speed != 0 else 0
 
-        self.set_angle(0, target_angle1)
-        self.set_angle(1, target_angle2)
+                for step in range(steps):
+                    step_size = direction * speed / 50.0
+                    self.current_angles[i] += step_size
+                    self.set_angle(i, self.current_angles[i])
+                    time.sleep(0.02)  # 50Hz更新频率
+
+                self.set_angle(i, target_angle)
 
     def freeze(self):
-        self.move_to_angle(self.current_angles[0], 0, self.current_angles[1], 0)
+        for pwm in self.pwms:
+            pwm.ChangeDutyCycle(0)
 
     def stop(self):
         for pwm in self.pwms:
@@ -510,7 +521,9 @@ class IncrementalPID:
 # 示例用法
 if __name__ == "__main__":
     servos = DualServo()
-    servos.move_by_direction(direction_x=1, speed_x=5, direction_y=-1, speed_y=5)
+    servos.set_angle(0, 105)
+    servos.set_angle(1, 135)
+    # servos.move_by_direction(direction_x=1, speed_x=40, direction_y=-1, speed_y=40)
     time.sleep(2)
     servos.freeze()  # 停下舵机
     print("test done")

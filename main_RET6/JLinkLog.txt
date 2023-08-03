@@ -1,0 +1,86 @@
+T05F4 000:006.255   SEGGER J-Link V7.88i Log File
+T05F4 000:006.534   DLL Compiled: Jun 21 2023 11:52:57
+T05F4 000:006.545   Logging started @ 2023-07-20 14:17
+T05F4 000:006.552 - 6.556ms
+T05F4 000:006.565 JLINK_SetWarnOutHandler(...)
+T05F4 000:006.574 - 0.012ms
+T05F4 000:006.585 JLINK_OpenEx(...)
+T05F4 000:008.845   Firmware: J-Link OB-STM32F072-CortexM compiled Jan  7 2019 14:09:37
+T05F4 000:009.284   Firmware: J-Link OB-STM32F072-CortexM compiled Jan  7 2019 14:09:37
+T05F4 000:009.457   Decompressing FW timestamp took 121 us
+T05F4 000:014.794   Hardware: V1.00
+T05F4 000:014.870   S/N: 4294967295
+T05F4 000:014.893   OEM: SEGGER
+T05F4 000:014.914   Feature(s): GDB, RDI, FlashBP, FlashDL, JFlash, RDDI
+T05F4 000:015.911   Bootloader: (Could not read)
+T05F4 000:016.912   TELNET listener socket opened on port 19021
+T05F4 000:017.059   WEBSRV WEBSRV_Init(): Starting webserver thread(s)
+T05F4 000:017.292   WEBSRV Webserver running on local port 19080
+T05F4 000:017.410   Looking for J-Link GUI Server exe at: E:\keil_v5\ARM\Segger\JLinkGUIServer.exe
+T05F4 000:017.586   Looking for J-Link GUI Server exe at: C:\Program Files\SEGGER\JLink\JLinkGUIServer.exe
+T05F4 000:017.651   Forking J-Link GUI Server: C:\Program Files\SEGGER\JLink\JLinkGUIServer.exe
+T05F4 000:044.744   J-Link GUI Server info: "J-Link GUI server V7.88i "
+T05F4 000:049.232 - 42.666ms returns "O.K."
+T05F4 000:049.292 JLINK_GetEmuCaps()
+T05F4 000:049.302 - 0.014ms returns 0xB8EA5A33
+T05F4 000:049.316 JLINK_TIF_GetAvailable(...)
+T05F4 000:049.550 - 0.244ms
+T05F4 000:049.573 JLINK_SetErrorOutHandler(...)
+T05F4 000:049.582 - 0.013ms
+T05F4 000:049.615 JLINK_ExecCommand("ProjectFile = "E:\robot\project\2023guangshe_xiao\STM32\main_RET6\JLinkSettings.ini"", ...). 
+T05F4 000:059.884   Ref file found at: E:\keil_v5\ARM\Segger\JLinkDevices.ref
+T05F4 000:059.996   REF file references invalid XML file: C:\Program Files\SEGGER\JLink\JLinkDevices.xml
+T05F4 000:060.120 - 10.511ms returns 0x00
+T05F4 000:067.430 JLINK_ExecCommand("Device = STM32F103RC", ...). 
+T05F4 000:074.948   Device "STM32F103RC" selected.
+T05F4 000:075.520 - 8.041ms returns 0x00
+T05F4 000:075.544 JLINK_ExecCommand("DisableConnectionTimeout", ...). 
+T05F4 000:075.558 - 0.005ms returns 0x01
+T05F4 000:075.628 JLINK_GetHardwareVersion()
+T05F4 000:075.647 - 0.023ms returns 10000
+T05F4 000:075.667 JLINK_GetDLLVersion()
+T05F4 000:075.682 - 0.020ms returns 78809
+T05F4 000:075.693 JLINK_GetOEMString(...)
+T05F4 000:075.703 JLINK_GetFirmwareString(...)
+T05F4 000:075.711 - 0.012ms
+T05F4 000:090.203 JLINK_GetDLLVersion()
+T05F4 000:090.239 - 0.040ms returns 78809
+T05F4 000:090.249 JLINK_GetCompileDateTime()
+T05F4 000:090.257 - 0.010ms
+T05F4 000:094.222 JLINK_GetFirmwareString(...)
+T05F4 000:094.237 - 0.018ms
+T05F4 000:098.104 JLINK_GetHardwareVersion()
+T05F4 000:098.119 - 0.019ms returns 10000
+T05F4 000:104.394 JLINK_GetSN()
+T05F4 000:104.420 - 0.029ms returns -1
+T05F4 000:104.428 JLINK_GetOEMString(...)
+T05F4 000:113.942 JLINK_TIF_Select(JLINKARM_TIF_SWD)
+T05F4 000:115.210 - 1.295ms returns 0x00
+T05F4 000:115.300 JLINK_HasError()
+T05F4 000:115.325 JLINK_SetSpeed(10000)
+T05F4 000:115.449 - 0.129ms
+T05F4 000:115.463 JLINK_GetId()
+T05F4 000:121.205   InitTarget() start
+T05F4 000:121.233    J-Link Script File: Executing InitTarget()
+T05F4 000:125.067   SWD selected. Executing JTAG -> SWD switching sequence.
+T05F4 000:131.853   DAP initialized successfully.
+T05F4 000:137.350   Can not attach to CPU. Trying connect under reset.
+T05F4 000:193.857   SWD selected. Executing JTAG -> SWD switching sequence.
+T05F4 000:202.310   DAP initialized successfully.
+T05F4 000:206.905   Connecting to CPU via connect under reset failed.
+T05F4 000:264.416   InitTarget() end - Took 136ms
+T05F4 000:268.484   Connect failed. Resetting via Reset pin and trying again.
+T05F4 000:335.950   InitTarget() start
+T05F4 000:335.990    J-Link Script File: Executing InitTarget()
+T05F4 000:341.100   SWD selected. Executing JTAG -> SWD switching sequence.
+T05F4 000:347.327   DAP initialized successfully.
+T05F4 000:354.491   Can not attach to CPU. Trying connect under reset.
+T05F4 000:411.873   SWD selected. Executing JTAG -> SWD switching sequence.
+T05F4 000:420.440   DAP initialized successfully.
+T05F4 000:425.389   Connecting to CPU via connect under reset failed.
+T05F4 000:484.128   InitTarget() end - Took 139ms
+T05F4 000:484.170 - 368.710ms returns 0x00000000
+T05F4 001:607.003 JLINK_Close()
+T05F4 001:620.094 - 13.122ms
+T05F4 001:620.136   
+T05F4 001:620.149   Closed

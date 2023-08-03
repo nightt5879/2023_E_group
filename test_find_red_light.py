@@ -35,15 +35,16 @@ while True:
 
 if __name__ == "__main__":
     cap = raspberry_king.Video(camera=cam)
-    pid_controller = raspberry_king.IncrementalPID(kp_x=1.0, ki_x=0.0, kd_x=0.0, kp_y=1.0, ki_y=0.0, kd_y=0.0)
+    pid_controller = raspberry_king.IncrementalPID(kp_x=0.03, ki_x=0.0, kd_x=0.0, kp_y=0.3, ki_y=0.0, kd_y=0.0)
     servos = raspberry_king.DualServo(17, 27)
     # 以每秒15度和20度的速度将两个舵机分别旋转到90度和60度
-    servos.move_to_angle(135, 90, 135, 90)
-    servos.stop()
+    servos.move_to_angle(105, 90, 135, 90)
+    servos.freeze()
+    # servos.stop()
     while True:
 
         cap.read_frame()
-        cap.show_frame()
+        cap.show_frame(wait_set=10)
         cap.gray_find_red_light()
         # 获取当前的x和y坐标（例如，从摄像头）
         current_x, current_y = cap.cX, cap.cY
@@ -51,6 +52,18 @@ if __name__ == "__main__":
         # 计算PID输出
         if (current_x != 0) and (current_y != 0):
             pid_output_x, pid_output_y = pid_controller.calculate(current_x, current_y)
+            # 根据PID输出计算舵机的方向和速度
+            direction_x = 1 if pid_output_x > 0 else -1
+            direction_y = 1 if pid_output_y > 0 else -1
+
+            # 这里你可以调整速度系数来控制舵机的响应速度
+            speed_x = abs(pid_output_x) * 1
+            speed_y = abs(pid_output_y) * 1
+
+            # 控制舵机
+            # servos.move_by_direction(direction_x=direction_x, speed_x=10, direction_y=direction_y, speed_y=10)
+            print("x:", pid_output_x, "y:", pid_output_y)
+
             print("x:", pid_output_x, "y:", pid_output_y)
         # cap.hsv_frame_red()
         # cap.show_frame(window_name="hsv_frame_red", img_show=cap.dst)

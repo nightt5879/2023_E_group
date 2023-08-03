@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "stm32f10x.h": "c",
+        "gpio.h": "c",
+        "stm32f10x_tim.h": "c",
+        "misc.h": "c",
+        "mpu6050.h": "c",
+        "6050control.h": "c",
+        "uart.h": "c",
+        "iterator": "c"
+    }
+}
