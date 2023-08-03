@@ -8,7 +8,6 @@ import cv2
 import numpy as np
 import time
 
-
 # 摄像头反复调用
 exit_loop = False
 while True:
@@ -32,41 +31,87 @@ while True:
 
     if exit_loop:
         break # 跳出外部循环
-
-if __name__ == "__main__":
-    cap = raspberry_king.Video(camera=cam)
-    pid_controller = raspberry_king.IncrementalPID(kp_x=0.03, ki_x=0.0, kd_x=0.0, kp_y=0.3, ki_y=0.0, kd_y=0.0)
-    servos = raspberry_king.DualServo(17, 27)
-    # 以每秒15度和20度的速度将两个舵机分别旋转到90度和60度
-    servos.move_to_angle(105, 90, 135, 90)
-    servos.freeze()
-    # servos.stop()
-    while True:
-
-        cap.read_frame()
+# 全局变量
+pid_controller = raspberry_king.IncrementalPID(kp_x=0.02, ki_x=0.00, kd_x=0.0, kp_y=0.02, ki_y=0.00, kd_y=0.0)
+cap = raspberry_king.Video(camera=cam)
+servo_control = raspberry_king.ServoSTM32()
+def move_to_one_point(target_x, target_y,set=1):
+    pid_controller.target_x = target_x
+    pid_controller.target_y = target_y
+    pid_controller.reached = 0
+    while pid_controller.reached == 0:
+        cap.read_frame(cut=1)
         cap.show_frame(wait_set=10)
         cap.gray_find_red_light()
-        # 获取当前的x和y坐标（例如，从摄像头）
         current_x, current_y = cap.cX, cap.cY
-
-        # 计算PID输出
         if (current_x != 0) and (current_y != 0):
-            pid_output_x, pid_output_y = pid_controller.calculate(current_x, current_y)
-            # 根据PID输出计算舵机的方向和速度
-            direction_x = 1 if pid_output_x > 0 else -1
-            direction_y = 1 if pid_output_y > 0 else -1
+            pid_controller.calculate_pid_increment(current_x, current_y,flag_set=set)
+            servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
+                                        -int(pid_controller.pid_output_x * 10))
+            # print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
+    # pid_controller.reached = 0  #重置一下标志位
+    # servo_control.control_servo(0,0)
+    print("Reached final target!",current_x,current_y)
 
-            # 这里你可以调整速度系数来控制舵机的响应速度
-            speed_x = abs(pid_output_x) * 1
-            speed_y = abs(pid_output_y) * 1
+def move_to_one_point_test(target_x, target_y,set=1,set_speed = 1):
+    pid_controller.target_x = target_x
+    pid_controller.target_y = target_y
+    pid_controller.reached = 0
+    while pid_controller.reached == 0:
+        cap.read_frame(cut=1)
+        cap.show_frame(wait_set=10)
+        cap.gray_find_red_light()
+        current_x, current_y = cap.cX, cap.cY
+        if (current_x != 0) and (current_y != 0):
+            pid_controller.calculate(current_x, current_y,flag_set=set)
+            if pid_controller.pid_output_x > 0:
+                x_speed = int(-set_speed-pid_controller.pid_output_x * 10)
+            else:
+                x_speed = int(set_speed-pid_controller.pid_output_x * 10)
+            if pid_controller.pid_output_y > 0:
+                y_speed = int(-set_speed-pid_controller.pid_output_y * 10)
+            else:
+                y_speed = int(set_speed-pid_controller.pid_output_y * 10)
+            # y_speed = -set_speed-int(pid_controller.pid_output_y * 10)
+            # y_speed = 0
+            # x_speed = 0
+            servo_control.control_servo(y_speed,x_speed)
+            print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
+            print("x_speed:", x_speed, "y_speed:", y_speed)
+    # pid_controller.reached = 0  #重置一下标志位
+    servo_control.control_servo(0,0)
+    print("Reached final target!",current_x,current_y)
 
-            # 控制舵机
-            # servos.move_by_direction(direction_x=direction_x, speed_x=10, direction_y=direction_y, speed_y=10)
-            print("x:", pid_output_x, "y:", pid_output_y)
+def interpolate(start_x, start_y, end_x, end_y, num_points):
+    x_values = [start_x + i * (end_x - start_x) / (num_points - 1) for i in range(num_points)]
+    y_values = [start_y + i * (end_y - start_y) / (num_points - 1) for i in range(num_points)]
+    return list(zip(x_values, y_values))
 
-            print("x:", pid_output_x, "y:", pid_output_y)
-        # cap.hsv_frame_red()
-        # cap.show_frame(window_name="hsv_frame_red", img_show=cap.dst)
-        #转换为灰度图像
+def move_to_point(start_x, start_y, end_x, end_y):
+    num_points = 50  # 你可以根据你的需求调整这个值
+    points = interpolate(start_x, start_y, end_x, end_y, num_points)
+    for target_x, target_y in points:
+        pid_controller.target_x = target_x
+        pid_controller.target_y = target_y
+        pid_controller.reached = 0
+        while pid_controller.reached == 0:
+            cap.read_frame(cut=1)
+            cap.show_frame(wait_set=10)
+            cap.gray_find_red_light()
+            current_x, current_y = cap.cX, cap.cY
+            if (current_x != 0) and (current_y != 0):
+                pid_controller.calculate_pid_increment(current_x, current_y,flag_set=1)
+                servo_control.control_servo(-int(pid_controller.pid_output_y * 10),-int(pid_controller.pid_output_x * 10))
+                print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
+    print("Reached final target!_______________________",current_x,current_y)
 
-
+if __name__ == "__main__":
+    # move_to_point(240, 240, 65, 65)
+    move_to_one_point(240, 240)
+    move_to_one_point(65, 65)
+    move_to_one_point(415, 65)
+    move_to_one_point(415, 415)
+    move_to_one_point(65, 415)
+    move_to_one_point(65, 65)
+    while True:
+        pass

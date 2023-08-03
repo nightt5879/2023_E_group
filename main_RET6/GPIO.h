@@ -13,15 +13,15 @@ void set_speed(int16_t motor1_speed, int16_t motor2_speed);
 
 
 
-#define MID_X 135
-#define MID_Y 75
-#define ANGLE_INCREMENT 0.001f
+#define MID_X 90
+#define MID_Y 90  // 75
+#define ANGLE_INCREMENT 0.00001f
 #define MIN_ANGLE 0
 #define MAX_ANGLE 180
-#define MAX_ANGLE_X 225
-#define MIN_ANGLE_X 45
-#define MIN_ANGLE_Y 40
-#define MAX_ANGLE_Y 110
+#define MAX_ANGLE_X 150
+#define MIN_ANGLE_X 30
+#define MIN_ANGLE_Y 50  // 40
+#define MAX_ANGLE_Y 150 // 110
 
 
 #endif

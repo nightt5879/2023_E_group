@@ -257,14 +257,21 @@ void USART2_IRQHandler(void)
                 Serial_SendPacket();
                 RxState = 0;
                 Serial_RxFlag = 1;
+                if ((Serial_RxPacket[1]==0) && (Serial_RxPacket[2]==0) && (Serial_RxPacket[4]==0) && (Serial_RxPacket[5]==0))
+                {
+                    motor1_speed_set = 0;
+                    motor2_speed_set = 0;
+                }
+                else
+                {
+                    uint8_t motor1_direction = Serial_RxPacket[0];
+                    motor1_speed_set = ((int16_t)Serial_RxPacket[1] << 8) | Serial_RxPacket[2];
+                    if (motor1_direction) motor1_speed_set = -motor1_speed_set;
 
-                uint8_t motor1_direction = Serial_RxPacket[0];
-                motor1_speed_set = ((int16_t)Serial_RxPacket[1] << 8) | Serial_RxPacket[2];
-                if (motor1_direction) motor1_speed_set = -motor1_speed_set;
-
-                uint8_t motor2_direction = Serial_RxPacket[3];
-                motor2_speed_set = ((int16_t)Serial_RxPacket[4] << 8) | Serial_RxPacket[5];
-                if (motor2_direction) motor2_speed_set = -motor2_speed_set;
+                    uint8_t motor2_direction = Serial_RxPacket[3];
+                    motor2_speed_set = ((int16_t)Serial_RxPacket[4] << 8) | Serial_RxPacket[5];
+                    if (motor2_direction) motor2_speed_set = -motor2_speed_set;
+                }
             }
         }
         USART_ClearITPendingBit(USART2, USART_IT_RXNE);

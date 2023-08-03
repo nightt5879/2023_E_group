@@ -71,7 +71,7 @@ int main(void)
 //		Serial_SendByte(0x01);
 //		Serial_SendPacket();
 		set_speed(motor1_speed_set,motor2_speed_set);
-		Delay_ms(1);
+		Delay_us(1);
 	}
 }
 
