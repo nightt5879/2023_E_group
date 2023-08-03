@@ -15,6 +15,8 @@ uint8_t Serial_TxPacket[6];				//FF 01 02 03 04 05 06FE
 uint8_t Serial_RxPacket[6];
 uint8_t Serial_RxFlag;
 
+uint8_t motor1_direction, motor2_direction;
+int16_t motor1_speed_set, motor2_speed_set;
 /**
   * @brief  init USART4
   * @retval None
@@ -228,7 +230,8 @@ void USART2_IRQHandler(void)
     static uint8_t RxState = 0;
     static uint8_t pRxPacket = 0;
     if (USART_GetITStatus(USART2, USART_IT_RXNE) == SET)
-    {
+    {   
+        
         uint8_t RxData = USART_ReceiveData(USART2);
         if (RxState == 0)
         {
@@ -241,7 +244,7 @@ void USART2_IRQHandler(void)
         else if (RxState == 1)
         {
             Serial_RxPacket[pRxPacket] = RxData;
-            pRxPacket ++;
+            pRxPacket++;
             if (pRxPacket >= 6)
             {
                 RxState = 2;
@@ -251,45 +254,19 @@ void USART2_IRQHandler(void)
         {
             if (RxData == 0xFE) // here mean the right data
             {
+                Serial_SendPacket();
                 RxState = 0;
                 Serial_RxFlag = 1;
-                if (Serial_RxPacket[0] == 0x0B)  // send the distance positve
-                {
-                    stop_the_car();
-                    corner_flag = 1;
-                    distance_y_uart = Serial_RxPacket[1]; 
-                    distance_x_uart = Serial_RxPacket[2];
-                    one_move_flag = 1;
-                }
-                else if (Serial_RxPacket[0] == 0x0C)
-                {
-                    stop_the_car();
-                    corner_flag = 1;
-                    distance_y_uart = -Serial_RxPacket[1];
-                    distance_x_uart = -Serial_RxPacket[2];
-                    one_move_flag = 1;
-                }
-                else if (Serial_RxPacket[0] == 0x0D) // control the MPU 6050
-                {
-                    if (Serial_RxPacket[1] == 0) // stop the angle and correction
-                    {
-                        toggle_delta_v(0);
-                        mpu_6050_corretion();
-                    }
-                    else if (Serial_RxPacket[1] == 1)
-                    {
-                        toggle_delta_v(1);
-                    }
-                }
-			// Serial_TxPacket[1] = Serial_RxPacket[1];
-			// Serial_TxPacket[2] = Serial_RxPacket[2];
-			// Serial_TxPacket[3] = Serial_RxPacket[3];
-			// Serial_TxPacket[4] = Serial_RxPacket[4];
-			// Serial_TxPacket[5] = Serial_RxPacket[5];
+
+                uint8_t motor1_direction = Serial_RxPacket[0];
+                motor1_speed_set = ((int16_t)Serial_RxPacket[1] << 8) | Serial_RxPacket[2];
+                if (motor1_direction) motor1_speed_set = -motor1_speed_set;
+
+                uint8_t motor2_direction = Serial_RxPacket[3];
+                motor2_speed_set = ((int16_t)Serial_RxPacket[4] << 8) | Serial_RxPacket[5];
+                if (motor2_direction) motor2_speed_set = -motor2_speed_set;
             }
-		
         }
         USART_ClearITPendingBit(USART2, USART_IT_RXNE);
     }
 }
-

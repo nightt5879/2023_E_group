@@ -517,7 +517,28 @@ class IncrementalPID:
 
         return pid_output_x, pid_output_y
 
+class SER_UART:
+    def __init__(self):
+        """
+        init the car
+        """
+        self.car_com1 = serial.Serial("/dev/ttyAMA1", 115200)  # init the car com
+        self.data = [0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFE]  # init the data
 
+    def control_servo(self, servo_1_speed, servo_2_speed):
+        """
+        control the servo
+        :param servo_1_speed: servo 1 speed
+        :param servo_2_speed: servo 2 speed
+        :return: None
+        """
+        if servo_1_speed < 0:
+            self.data[1] = 0x01
+            self.data[2] = abs(servo_1_speed)
+        else:
+            self.data[1] = 0x00
+            self.data[2] = servo_1_speed
+        self.car_com1.write(self.data)
 # 示例用法
 if __name__ == "__main__":
     servos = DualServo()

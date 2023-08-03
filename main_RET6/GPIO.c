@@ -2,48 +2,52 @@
 #include "stm32f10x.h"                  // Device header
 #include "motor.h"
 
+
+#define MIN_DUTY_CYCLE  1000 // 0.5ms at 50Hz
+#define MAX_DUTY_CYCLE  5000 // 2.5ms at 50Hz
+#define MIDDLE_DUTY_CYCLE (3000) // 1.5ms at 200Hz
+float motor1_angle = MID_Y, motor2_angle = MID_X;
 /**
   * @brief  Initializes TIM4 pwm output
   * @retval None
   */
 void pwm_init(void)
 {
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); //enable the internal clock
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);  //Enable GPIOB Clock
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM4, ENABLE); // enable the internal clock
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);  // Enable GPIOB Clock
 	GPIO_InitTypeDef GPIO_InitStructure;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	
-	//Init All The PWM IO
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7 | GPIO_Pin_8 | GPIO_Pin_9; //TIM2_CH1,2,3,4
+	// Init All The PWM IO
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_6 | GPIO_Pin_7; // TIM4_CH1,2
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
 	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	
 	TIM_InternalClockConfig(TIM4);  
 	
-	//All Timer is the same 
+	// All Timer is the same 
 	TIM_TimeBaseInitTypeDef TIM_TimeBaseInitStructure;
 	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
-	TIM_TimeBaseInitStructure.TIM_Period = 1000 - 1;		//ARR pwm frequency = 72MHz/1000 = 72KHz
-	TIM_TimeBaseInitStructure.TIM_Prescaler = 2 - 1;		//PSC  do not pre-divide the frequency
-	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0;  // do not use the repetition counter
-	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseInitStructure);  //init the timer
+	TIM_TimeBaseInitStructure.TIM_Period = 40000 - 1;      // ARR pwm frequency = (72MHz / 4) / 20000 = 50Hz
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 36 - 1;      // PSC, pre-divide by 4 to achieve 18MHz
+	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0; // do not use the repetition counter
+	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseInitStructure);  // init the timer
 	
-	//All The Servo is the Same Mod
+	// All The Servo is the Same Mod
 	TIM_OCInitTypeDef TIM_OCInitStructure;
 	TIM_OCStructInit(&TIM_OCInitStructure);
 	TIM_OCInitStructure.TIM_OCMode = TIM_OCMode_PWM1;
 	TIM_OCInitStructure.TIM_OCPolarity = TIM_OCPolarity_High;
 	TIM_OCInitStructure.TIM_OutputState = TIM_OutputState_Enable;
-	TIM_OCInitStructure.TIM_Pulse = 0;		//CCR start from 0 duty cycle
+	TIM_OCInitStructure.TIM_Pulse = MIDDLE_DUTY_CYCLE;		// CCR start from 1.5ms duty cycle
 	
-	//The 4 Servoes Init
+	// The 2 Servoes Init (since you are using only PB6 and PB7)
 	TIM_OC1Init(TIM4, &TIM_OCInitStructure);
 	TIM_OC2Init(TIM4, &TIM_OCInitStructure);
-	TIM_OC3Init(TIM4, &TIM_OCInitStructure);
-	TIM_OC4Init(TIM4, &TIM_OCInitStructure);
 	TIM_Cmd(TIM4, ENABLE);
 }
+
 
 /**
   * @brief  change the pwm duty cycle
@@ -53,8 +57,8 @@ void pwm_init(void)
   */
 void pwm_set_duty_cycle(uint8_t CHx, uint16_t Compare)  // change the duty cycle 1 to 4 CHx
 {
-  if (Compare > MAX_OUTPUT) Compare = MAX_OUTPUT;  // limit the duty cycle
-  else if (Compare <= MIN_OUTPUT) Compare = MIN_OUTPUT;
+  // if (Compare > MAX_OUTPUT) Compare = MAX_OUTPUT;  // limit the duty cycle
+  // else if (Compare <= MIN_OUTPUT) Compare = MIN_OUTPUT;
     switch (CHx){
         case 1:TIM_SetCompare1(TIM4, Compare);break;
         case 2:TIM_SetCompare2(TIM4, Compare);break;
@@ -63,6 +67,41 @@ void pwm_set_duty_cycle(uint8_t CHx, uint16_t Compare)  // change the duty cycle
         default:break;
     }
 }
+
+void set_angle(uint8_t servo, float angle)
+{
+  // Limit the angle to the allowable range
+  if (angle > MAX_ANGLE) angle = MAX_ANGLE;
+  else if (angle < MIN_ANGLE) angle = MIN_ANGLE;
+  
+  // Calculate the corresponding duty cycle
+  uint16_t duty_cycle = MIN_DUTY_CYCLE + (MAX_DUTY_CYCLE - MIN_DUTY_CYCLE) * angle / MAX_ANGLE;
+  
+  // Choose the appropriate servo channel (PB6 or PB7)
+  uint8_t channel = (servo == 0) ? 1 : 2;
+  
+  // Set the PWM duty cycle
+  pwm_set_duty_cycle(channel, duty_cycle);
+}
+
+// 设置伺服电机的速度和方向
+void set_speed(int16_t motor1_speed, int16_t motor2_speed)
+{
+  // 计算新的角度
+  motor1_angle += motor1_speed * ANGLE_INCREMENT; // ANGLE_INCREMENT是每步的角度变化
+  motor2_angle += motor2_speed * ANGLE_INCREMENT;
+
+  // 限制角度范围
+  if (motor1_angle > MAX_ANGLE_Y) motor1_angle = MAX_ANGLE_Y;
+  if (motor1_angle < MIN_ANGLE_Y) motor1_angle = MIN_ANGLE_Y;
+  if (motor2_angle > MAX_ANGLE_X) motor2_angle = MAX_ANGLE_X;
+  if (motor2_angle < MIN_ANGLE_X) motor2_angle = MIN_ANGLE_X;
+
+  // 设置电机角度
+  set_angle(0, motor1_angle);
+  set_angle(1, motor2_angle);
+}
+
 
 /**
   * @brief  Initializes motor direction gpio

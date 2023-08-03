@@ -3,15 +3,15 @@
         {
             "name": "Target 1",
             "includePath": [
-                "e:\\robot\\project\\2023guangshe_xiao\\STM32\\main_RET6\\Start",
-                "e:\\robot\\project\\2023guangshe_xiao\\STM32\\main_RET6\\User",
-                "e:\\robot\\project\\2023guangshe_xiao\\STM32\\main_RET6\\Library",
-                "e:\\robot\\project\\2023guangshe_xiao\\STM32\\main_RET6",
+                "e:\\robot\\project\\2023_E_group\\main_RET6\\Start",
+                "e:\\robot\\project\\2023_E_group\\main_RET6\\User",
+                "e:\\robot\\project\\2023_E_group\\main_RET6\\Library",
+                "e:\\robot\\project\\2023_E_group\\main_RET6",
                 "E:\\keil_v5\\ARM\\ARMCC\\include",
                 "E:\\keil_v5\\ARM\\ARMCC\\include\\arm_linux",
                 "E:\\keil_v5\\ARM\\ARMCC\\include\\arm_linux_compat",
                 "E:\\keil_v5\\ARM\\ARMCC\\include\\rw",
-                "e:\\robot\\project\\2023guangshe_xiao\\STM32\\main_RET6\\Listings"
+                "e:\\robot\\project\\2023_E_group\\main_RET6\\Listings"
             ],
             "defines": [
                 "STM32F10X_HD",

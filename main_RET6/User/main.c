@@ -6,6 +6,7 @@
 #include "MPU6050.h"
 #include <stdlib.h>
 #include "GPIO.h"
+#include <math.h>
 //below are the test define
 #define TEST_PWM_DUTY 100
 #define TARGET_DISTANCE 40
@@ -35,38 +36,42 @@ float data[CH_COUNT]; // the data send to the computer
 uint8_t send_flag = 0; // when into the motor interrupt, this flag will turning to 1, send the data to the computer
 uint16_t test_flag = 0, break_flag = 0, test_time_flag = 0;   // using for test
 uint8_t test_id;  //sometime need to use send mpu-6050 id, cheaking if the mpu-6050 is working
+
+
+#define M_PI 3.14159265358979323846
+extern int16_t motor1_speed_set, motor2_speed_set;
+
+void calculate_angles(float x, float y, float *angle_x, float *angle_y) {
+    // 计算angle_x，使用atan计算，然后将结果从弧度转换为度
+    *angle_x = 1.4 * atan(x / 100.0f) * (180.0f / M_PI);
+
+    // 计算斜边D
+    float D = sqrt(x * x + 100.0f * 100.0f);
+
+    // 计算angle_y，使用atan计算，然后将结果从弧度转换为度
+    *angle_y = 1.1 * atan(y / D) * (180.0f / M_PI);
+}
+
+float angle_x, angle_y;
+// angle_x 和 angle_y 现在包含了你所需的角度
 int main(void)
 {
 	init();
-	toggle_delta_v(1);
-	// distance_y_uart = MOVE_Y;
-	// distance_x_uart = -MOVE_X;
-	fl_target_speed = -TEST_SPEED;
-	fr_target_speed = TEST_SPEED;
-	bl_target_speed = TEST_SPEED;
-	br_target_speed = -TEST_SPEED;
-	distance_x_uart = -MOVE_X;
-	one_move_flag = 1;
-	corner_flag = 1;
-	// pid_distance_flag = 1;
-	// corner_flag = 0;
-	// stop_the_car();
-	// distance_x_uart = -CORNER_X;
+	// set_angle(0,100);
+	set_angle(1,MID_X);
+	set_angle(0,MID_Y);
+	Delay_s(1);
+	// pwm_set_duty_cycle(1,2000);
+	// calculate_angles(-25, 25, &angle_x, &angle_y);
+	// set_angle(1,MID_X - angle_x);
+	// set_angle(0,MID_Y - angle_y);
+	// set_speed(-1,1);
 	while (1)
 	{	
-		get_6050_data(); //I2C communication is too low, we get the data in main and use data in interrupt
-		// test_id = MPU6050_GetID();
-		send_to_win();
-		if(distance_flag == 1)
-		{
-			distance_flag = 0;
-			Serial_SendByte(0x01);
-		}
-		// if (test_time_flag >= 100)
-		// {
-		// 	stop_car();
-		// }
-		// Delay_ms(50);
+//		Serial_SendByte(0x01);
+//		Serial_SendPacket();
+		set_speed(motor1_speed_set,motor2_speed_set);
+		Delay_ms(1);
 	}
 }
 
@@ -83,25 +88,11 @@ void init(void)
 	SystemInit();
 	Delay_ms(100);
 	//6050
-	init_6050();
+	// init_6050();
 	//control of the motor, include 4PWM and 4DIR
 	motor_init();
-	//init the gray input
-	init_gray_scale_module_gpio();
-	//the four encoders
-	TIM1_ETR_Config();
-	TIM8_ETR_Config();
-	TIM3_ETR_Config();
-	TIM2_ETR_Config();
-	dir_gpio_input_Config();
-	//init the pid and the interrupt (10ms)
-	init_pid();
-	TIM6_Configuration();
 	//UART init
 	UART4_Init();
-	//init the angle pid and interrupt init (1ms)
-	init_pid_angle();
-	TIM7_Configuration();
 	//serial to the raspberry
 	Serial_Init();
 	//get the system clock
