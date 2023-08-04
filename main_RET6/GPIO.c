@@ -3,9 +3,9 @@
 #include "motor.h"
 
 
-#define MIN_DUTY_CYCLE  1000 // 0.5ms at 50Hz
-#define MAX_DUTY_CYCLE  5000 // 2.5ms at 50Hz
-#define MIDDLE_DUTY_CYCLE (3000) // 1.5ms at 200Hz
+#define MIN_DUTY_CYCLE  6000 // 0.5ms at 50Hz
+#define MAX_DUTY_CYCLE  30000 // 2.5ms at 50Hz
+#define MIDDLE_DUTY_CYCLE (12000) // 1.5ms at 200Hz
 float motor1_angle = MID_Y, motor2_angle = MID_X;
 /**
   * @brief  Initializes TIM4 pwm output
@@ -30,7 +30,7 @@ void pwm_init(void)
 	TIM_TimeBaseInitStructure.TIM_ClockDivision = TIM_CKD_DIV1;
 	TIM_TimeBaseInitStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInitStructure.TIM_Period = 40000 - 1;      // ARR pwm frequency = (72MHz / 4) / 20000 = 50Hz
-	TIM_TimeBaseInitStructure.TIM_Prescaler = 36 - 1;      // PSC, pre-divide by 4 to achieve 18MHz
+	TIM_TimeBaseInitStructure.TIM_Prescaler = 6 - 1;      // PSC, pre-divide by 4 to achieve 18MHz
 	TIM_TimeBaseInitStructure.TIM_RepetitionCounter = 0; // do not use the repetition counter
 	TIM_TimeBaseInit(TIM4, &TIM_TimeBaseInitStructure);  // init the timer
 	

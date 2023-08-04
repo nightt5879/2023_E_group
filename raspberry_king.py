@@ -581,6 +581,7 @@ class IncrementalPID:
 
         self.reached = 0
         self.reached_flag = 0
+        self.threshold = 8
 
     def calculate(self, current_x, current_y,flag_set=5):
         # 计算X方向的误差
@@ -642,7 +643,7 @@ class IncrementalPID:
         self.prev_error_y = error_y
         self.pid_output_y += delta_error_y
 
-        error_threshold = 10 # 你可以根据你的需求调整这个值
+        error_threshold = self.threshold # 你可以根据你的需求调整这个值
         error_x = abs(self.target_x - current_x)
         error_y = abs(self.target_y - current_y)
         if error_x < error_threshold and error_y < error_threshold:

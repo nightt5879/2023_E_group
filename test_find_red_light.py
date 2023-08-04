@@ -33,7 +33,7 @@ while True:
     if exit_loop:
         break # 跳出外部循环
 # 全局变量
-pid_controller = raspberry_king.IncrementalPID(kp_x=0.03, ki_x=0.00, kd_x=0.0, kp_y=0.03, ki_y=0.00, kd_y=0.0)
+pid_controller = raspberry_king.IncrementalPID(kp_x=0.02, ki_x=0.00, kd_x=0.0, kp_y=0.02, ki_y=0.00, kd_y=0.0)
 cap = raspberry_king.Video(camera=cam)
 servo_control = raspberry_king.ServoSTM32()
 key = raspberry_king.KeyInput(pin_set=21)
@@ -64,7 +64,7 @@ def move_to_one_point(target_x, target_y,set=1):
                 servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
                                             -int(pid_controller.pid_output_x * 10))
             # print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
-            print("x:", -int(pid_controller.pid_output_y * 10), "y:", -int(pid_controller.pid_output_x * 10))
+            # print("x:", -int(pid_controller.pid_output_y * 10), "y:", -int(pid_controller.pid_output_x * 10))
         time.sleep(0.01)
     servo_control.control_stop()
     print("Reached final target!",current_x,current_y)
@@ -103,12 +103,20 @@ def interpolate(start_x, start_y, end_x, end_y, num_points):
     y_values = [start_y + i * (end_y - start_y) / (num_points - 1) for i in range(num_points)]
     return list(zip(x_values, y_values))
 
-def move_to_point(start_x, start_y, end_x, end_y):
-    num_points = 5  # 你可以根据你的需求调整这个值
+def move_to_point(start_x, start_y, end_x, end_y, num_set=5):
+    num_points = num_set # 你可以根据你的需求调整这个
     points = interpolate(start_x, start_y, end_x, end_y, num_points)
     # print(points)
     for target_x, target_y in points:
+        print(target_x, target_y)
+        if target_x == end_x and target_y == end_y:  # 如果是最后一个点的位置放宽限制
+            pid_controller.threshold = 10
+            move_to_one_point(target_x, target_y,set=1)
+            pid_controller.threshold = 8
+            break
         move_to_one_point(target_x, target_y,set=1)
+
+
         # print(target_x,target_y)
     #     pid_controller.target_x = target_x
     #     pid_controller.target_y = target_y

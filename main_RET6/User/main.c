@@ -60,18 +60,27 @@ int main(void)
 	// set_angle(0,100);
 	set_angle(1,MID_X);
 	set_angle(0,MID_Y);
-	Delay_s(1);
+	// Delay_s(1);
+	// set(1,)
+	// Delay_s(1);
 	// pwm_set_duty_cycle(1,2000);
 	// calculate_angles(-25, 25, &angle_x, &angle_y);
 	// set_angle(1,MID_X - angle_x);
 	// set_angle(0,MID_Y - angle_y);
 	// set_speed(-1,1);
+	// pwm_set_duty_cycle(2,1000);
+	test_flag = 0;
 	while (1)
 	{	
 //		Serial_SendByte(0x01);
 //		Serial_SendPacket();
-		if ((motor1_speed_set != 0) || (motor2_speed_set != 0))
-			set_speed(motor1_speed_set,motor2_speed_set);
+		// if ((motor1_speed_set != 0) || (motor2_speed_set != 0))
+		set_speed(motor1_speed_set,motor2_speed_set);
+		// pwm_set_duty_cycle(2,6000 + test_flag);
+		// test_flag ++;
+		// if (test_flag >= 6000)
+		// 	break;
+		// Delay_ms(100);
 		Delay_us(1);
 	}
 }
@@ -87,13 +96,13 @@ void stop_car(void)
 void init(void)
 {
 	SystemInit();
-	Delay_ms(100);
+	// Delay_ms(100);
 	//6050
 	// init_6050();
 	//control of the motor, include 4PWM and 4DIR
 	motor_init();
 	//UART init
-	UART4_Init();
+	// UART4_Init();
 	//serial to the raspberry
 	Serial_Init();
 	//get the system clock
