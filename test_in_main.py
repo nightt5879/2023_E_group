@@ -12,6 +12,7 @@ import numpy as np
 exit_loop = False
 while True:
     cam = cv2.VideoCapture(0)  # -1就是使用默认摄像头 防止报错
+    cam.set(cv2.CAP_PROP_EXPOSURE, -4)  # 设置曝光值
     break_flag = 0
     # 读五次图像，如果都成功就跳出
     for i in range(5):
@@ -71,7 +72,7 @@ if __name__ == '__main__':
         cap.show_frame()
         cap.show_frame(window_name="init", img_show=cap.copy)
         cap.show_frame(window_name="hsv", img_show=cap.dst)
-        show_lcd(cap.copy)
+        # show_lcd(cap.copy)
         cap.edge_frame()
         cap.corner_detect()
         serial_0.send_coordinates(cap.points_list)

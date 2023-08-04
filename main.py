@@ -65,7 +65,7 @@ def init_location():
     cv2.destroyAllWindows()  # 关闭所有窗口
     show_lcd(cap.frame)  # 展示原图 就知道跳出来了
 
-def move_to_one_point(target_x, target_y,set=1,kp_x=0.010, ki_x=0.0, kd_x=0.0, kp_y=0.010, ki_y=0.00, kd_y=0.0):
+def move_to_one_point(target_x, target_y,set=1,kp_x=0.030, ki_x=0.0, kd_x=0.003, kp_y=0.030, ki_y=0.00, kd_y=0.003):
     """
     移动到一个点，增量式PID 移动某个点（不保证直线，保证稳定）
     :param target_x: 目标点的x坐标
@@ -98,7 +98,7 @@ def move_to_one_point(target_x, target_y,set=1,kp_x=0.010, ki_x=0.0, kd_x=0.0, k
         if pid_enabled and (current_x != 0) and (current_y != 0):
             pid_controller.calculate_pid_increment(current_x, current_y,flag_set=set)
             if (-int(pid_controller.pid_output_y * 10) != 0 or -int(pid_controller.pid_output_x * 10) != 0):
-                servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
+                servo_control.control_servo(int(pid_controller.pid_output_y * 10),
                                             -int(pid_controller.pid_output_x * 10))
             # print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
             # print("x:", -int(pid_controller.pid_output_y * 10), "y:", -int(pid_controller.pid_output_x * 10))
@@ -123,7 +123,21 @@ def interpolate(start_x, start_y, end_x, end_y, num_points):
     return list(zip(x_values, y_values))
 
 
-def move_to_point(start_x, start_y, end_x, end_y, num_set=2):
+def move_to_point(start_x, start_y, end_x, end_y, num_set=4):
+    num_points = num_set # 你可以根据你的需求调整这个
+    points = interpolate(start_x, start_y, end_x, end_y, num_points)
+    # print(points)
+    for target_x, target_y in points:
+        print(target_x, target_y)
+        if target_x == end_x and target_y == end_y:  # 如果是最后一个点的位置放宽限制
+            pid_controller.threshold = 12
+            move_to_one_point(target_x, target_y,set=2)
+            pid_controller.threshold = 8
+            break
+        pid_controller.threshold = 8
+        move_to_one_point(target_x, target_y,set=1)
+
+def move_to_point_small(start_x, start_y, end_x, end_y, num_set=4):
     num_points = num_set # 你可以根据你的需求调整这个
     points = interpolate(start_x, start_y, end_x, end_y, num_points)
     # print(points)
@@ -138,16 +152,47 @@ def move_to_point(start_x, start_y, end_x, end_y, num_set=2):
         move_to_one_point(target_x, target_y,set=1)
 
 def four_point():
-    move_to_point(65, 65, 415, 67)
-    move_to_point(415, 65, 415, 415)
-    move_to_point(415, 415, 65, 415)
-    move_to_point(65, 415, 65, 65)
+    move_to_point(65, 55, 415, 55)
+    move_to_point(415, 55, 415, 405)
+    move_to_point(415, 405, 65, 405)
+    move_to_point(65, 405, 65, 55)
 def back_to_center():
     """
     回到中心点
     :return:
     """
     move_to_one_point(240, 240, set=5)
+def find_the_target():
+    servo_control.control_servo(0, -40)
+    time.sleep(1)  # 先移开光斑以免影响检测
+    servo_control.control_stop()
+    while True:
+        # serial_0.send_frame()
+        rectangles_corners = []  # 重置矩形角点列表
+        corner_list = []
+        cap.read_frame()
+        cap.draw_circle()
+        cap.hsv_frame()
+        cap.show_frame()
+        cap.show_frame(window_name="init", img_show=cap.copy)
+        cap.show_frame(window_name="hsv", img_show=cap.dst)
+        # show_lcd(cap.copy)
+        cap.edge_frame()
+        cap.corner_detect()
+        if cap.points_list != [[0,0],[0,0],[0,0],[0,0]]:  # 说明识别到了
+            break
+    print("我已经成功识别 识别到的坐标是：",cap.points_list)
+    cv2.destroyAllWindows()  # 关闭所有窗口
+    servo_control.control_servo(0, 40)
+    time.sleep(1)  # 把光斑移动回来
+    servo_control.control_stop()
+    move_to_one_point(cap.points_list[0][0],cap.points_list[0][1],set=5)
+    move_to_point_small(cap.points_list[0][0],cap.points_list[0][1],cap.points_list[3][0],cap.points_list[3][1])
+    move_to_point_small(cap.points_list[3][0],cap.points_list[3][1],cap.points_list[2][0],cap.points_list[2][1])
+    move_to_point_small(cap.points_list[2][0],cap.points_list[2][1],cap.points_list[1][0],cap.points_list[1][1])
+    move_to_point_small(cap.points_list[1][0],cap.points_list[1][1],cap.points_list[0][0],cap.points_list[0][1])
+    print("移动完毕")
+
 # 回调函数
 def callback_function(channel):
     global pid_enabled
@@ -158,8 +203,9 @@ def callback_function(channel):
 
 if __name__ == '__main__':
     GPIO.add_event_detect(21, GPIO.FALLING, callback=callback_function, bouncetime=300)  # 开启事件检测
-    init_location()
+    # init_location()
     # four_point_calibration()
+    # move_to_one_point(137.1,221,set=5)
     while True:
         six_key.read_input() # 循环读取6个key的值
         if six_key.pin_pressed[1] == 1:  # 1号按键已经被按下
@@ -171,3 +217,6 @@ if __name__ == '__main__':
         elif six_key.pin_pressed[3]: # 3号按键已经被按下
             six_key.flash_all_key()  # 清空所有的值
             four_point()
+        elif six_key.pin_pressed[4]: # 4号按键已经被按下
+            six_key.flash_all_key()  # 清空所有的值
+            find_the_target()

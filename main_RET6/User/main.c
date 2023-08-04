@@ -37,7 +37,11 @@ uint8_t send_flag = 0; // when into the motor interrupt, this flag will turning 
 uint16_t test_flag = 0, break_flag = 0, test_time_flag = 0;   // using for test
 uint8_t test_id;  //sometime need to use send mpu-6050 id, cheaking if the mpu-6050 is working
 
-
+uint8_t rightModuleValues[5];
+uint8_t leftModuleValues[5];
+uint8_t frontModuleValues[5];
+uint8_t backModuleValues[5];
+uint8_t third_press_flag = 0;
 #define M_PI 3.14159265358979323846
 extern int16_t motor1_speed_set, motor2_speed_set;
 
@@ -52,7 +56,6 @@ void calculate_angles(float x, float y, float *angle_x, float *angle_y) {
     *angle_y = 1.1 * atan(y / D) * (180.0f / M_PI);
 }
 
-float angle_x, angle_y;
 // angle_x 和 angle_y 现在包含了你所需的角度
 int main(void)
 {
@@ -60,15 +63,9 @@ int main(void)
 	// set_angle(0,100);
 	set_angle(1,MID_X);
 	set_angle(0,MID_Y);
-	// Delay_s(1);
-	// set(1,)
-	// Delay_s(1);
-	// pwm_set_duty_cycle(1,2000);
-	// calculate_angles(-25, 25, &angle_x, &angle_y);
-	// set_angle(1,MID_X - angle_x);
-	// set_angle(0,MID_Y - angle_y);
-	// set_speed(-1,1);
-	// pwm_set_duty_cycle(2,1000);
+    // 你的初始化代码（例如设置GPIO引脚等）
+
+
 	test_flag = 0;
 	while (1)
 	{	
@@ -76,6 +73,19 @@ int main(void)
 //		Serial_SendPacket();
 		// if ((motor1_speed_set != 0) || (motor2_speed_set != 0))
 		set_speed(motor1_speed_set,motor2_speed_set);
+//		read_gray_scale_module(rightModuleValues, leftModuleValues, frontModuleValues, backModuleValues);
+//		if(leftModuleValues[2] == 0)
+//		{
+//			Delay_ms(10);
+//			if (leftModuleValues[2] == 0)
+//				third_press_flag = 1;
+//		}
+//		if ((third_press_flag == 1) && (leftModuleValues[2] == 1))  // it means finish the press down and up
+//		{
+//			third_press_flag = 0;  // reset the flag
+//			test_flag ++;
+//		}
+
 		// pwm_set_duty_cycle(2,6000 + test_flag);
 		// test_flag ++;
 		// if (test_flag >= 6000)
@@ -105,6 +115,7 @@ void init(void)
 	// UART4_Init();
 	//serial to the raspberry
 	Serial_Init();
+	init_gray_scale_module_gpio();
 	//get the system clock
 }
 

@@ -108,7 +108,7 @@ class Video:
         """
         ret, self.frame = self.cap.read()
         if cut:
-            self.frame = self.frame[0:480, 80:560]  # 裁剪一下图像
+            self.frame = self.frame[10:470, 80:560]  # 裁剪一下图像
         if not ret:
             print("read frame failed")  # 说明摄像头读取有问题
 
@@ -145,8 +145,8 @@ class Video:
         thickness = 2
         # 绘制矩形框
         cv2.rectangle(self.copy, start_point, end_point, color, thickness)
-        start_point = (80, 0)
-        end_point = (560, 480)
+        start_point = (80, 10)
+        end_point = (560, 470)
         color = (0, 255, 0)
         cv2.rectangle(self.copy, start_point, end_point, color, thickness)
 
@@ -183,7 +183,7 @@ class Video:
         blurred = cv2.GaussianBlur(self.frame, (5, 5), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         # 裁剪成框图内的图像
-        hsv = hsv[50:430, 130:510]
+        hsv = hsv[10:470, 80:560]
         lower_black = np.array([0, 40, 0])
         upper_black = np.array([180, 255, 75])
         # 使用HSV阈值过滤黑色
@@ -250,13 +250,14 @@ class Video:
 
         # 应用高斯模糊
         blurred = cv2.GaussianBlur(gray, (15, 15), 0)
-        # cv2.imshow('Gray_blurred', blurred)
+        cv2.imshow('Gray_blurred', blurred)
 
         # 设置阈值
-        _, thresh = cv2.threshold(blurred, 220, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(blurred, 210, 255, cv2.THRESH_BINARY)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+
+        thresh = cv2.dilate(thresh, kernel, iterations=2)
         thresh = cv2.erode(thresh, kernel, iterations=1)
-        thresh = cv2.dilate(thresh, kernel, iterations=1)
 
         cv2.imshow('Threshold', thresh)
 
@@ -307,7 +308,7 @@ class Video:
         cv2.imshow('Edge Detection', self.edges)
 
     def corner_detect(self):
-        self.out_img = self.copy[50:430, 130:510]  # 裁剪后的图像
+        self.out_img = self.copy[10:470, 80:560]  # 裁剪后的图像
         # 找到所有轮廓
         contours, _ = cv2.findContours(self.edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)  # 这个方法没有层级 可能识别多个轮廓
         # print("轮廓数量：%d" % len(contours))
@@ -360,7 +361,7 @@ class Video:
 
             # 打印中间轮廓的坐标
             print("框上的点坐标为：")
-            self.points_list = self.normalized_xy(self.points_list)  # 归一化一下坐标
+            # self.points_list = self.normalized_xy(self.points_list)  # 归一化一下坐标
             print(self.points_list)
 
             # 绘制中间轮廓
@@ -498,6 +499,7 @@ class Serial:
 
         frame = frame_head + frame_data + frame_end
         self.ser.write(frame.encode('utf-8'))  # 将字符串转换为字节串并发送
+
 
 
 
@@ -717,6 +719,12 @@ class ServoSTM32:
         self.data[4] = 0x00
         self.data[5] = 0x00
         self.data[6] = 0x00
+        self.car_com1.write(self.data)
+
+    def set_angle(self, angle_x, angle_y):
+        self.data[1] = 0xFF
+        self.data[2] = angle_x
+        self.data[3] = angle_y
         self.car_com1.write(self.data)
 # 示例用法
 if __name__ == "__main__":

@@ -60,9 +60,9 @@ def move_to_one_point(target_x, target_y,set=1):
             # pid_enabled = not pid_enabled  # 切换PID使能标志的状态
         if pid_enabled and (current_x != 0) and (current_y != 0):
             pid_controller.calculate_pid_increment(current_x, current_y,flag_set=set)
-            if (-int(pid_controller.pid_output_y * 10) != 0 or -int(pid_controller.pid_output_x * 10) != 0):
-                servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
-                                            -int(pid_controller.pid_output_x * 10))
+            # if (-int(pid_controller.pid_output_y * 10) != 0 or -int(pid_controller.pid_output_x * 10) != 0):
+            #     servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
+            #                                 -int(pid_controller.pid_output_x * 10))
             # print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
             # print("x:", -int(pid_controller.pid_output_y * 10), "y:", -int(pid_controller.pid_output_x * 10))
         time.sleep(0.01)
@@ -141,14 +141,14 @@ def callback_function(channel):
     pid_enabled = not pid_enabled  # 切换PID使能标志的状态
 
 if __name__ == "__main__":
-    move_to_point(65, 65, 415, 65)
-    move_to_point(415, 65, 415, 415)
-    move_to_point(415, 415, 65, 415)
-    move_to_point(65, 415, 65, 65)
+    # move_to_point(65, 65, 415, 65)
+    # move_to_point(415, 65, 415, 415)
+    # move_to_point(415, 415, 65, 415)
+    # move_to_point(65, 415, 65, 65)
     # move_to_point(65, 65, 415, 65)
     # move_to_point(415, 65, 65, 65)
     # move_to_one_point(240, 240)
-    # move_to_one_point(65, 65)
+    move_to_one_point(65, 65)
     # move_to_one_point(415, 65)
     # move_to_one_point(415, 415)
     # move_to_one_point(65, 415)
