@@ -69,11 +69,11 @@ class SixKeyInput:
         """
         for i in range(6):
             if GPIO.input(self.pin[i]) == GPIO.LOW:
-                time.sleep(0.001)  # 按键消除抖动
+                time.sleep(0.0001)  # 按键消除抖动
                 if GPIO.input(self.pin[i]) == GPIO.LOW:
                     self.pin_val[i] = 0
             elif GPIO.input(self.pin[i]) == GPIO.HIGH:
-                time.sleep(0.001)
+                time.sleep(0.0001)
                 if GPIO.input(self.pin[i]) == GPIO.HIGH and self.pin_val[i] == 0:  # 说明之前按下了
                     self.pin_val[i] = 1  # 清空按键按下状态
                     self.pin_pressed[i] = 1  # 这说明完成了按下到抬起的一个完整的按键动作
@@ -250,7 +250,7 @@ class Video:
 
         # 应用高斯模糊
         blurred = cv2.GaussianBlur(gray, (15, 15), 0)
-        cv2.imshow('Gray_blurred', blurred)
+        # cv2.imshow('Gray_blurred', blurred)
 
         # 设置阈值
         _, thresh = cv2.threshold(blurred, 220, 255, cv2.THRESH_BINARY)
@@ -606,7 +606,7 @@ class IncrementalPID:
         elif self.sum_error_y < -5:
             self.sum_error_y = -5
 
-        error_threshold = 5  # 你可以根据你的需求调整这个值
+        error_threshold = 14  # 你可以根据你的需求调整这个值
         error_x = abs(self.target_x - current_x)
         error_y = abs(self.target_y - current_y)
         if error_x < error_threshold and error_y < error_threshold:

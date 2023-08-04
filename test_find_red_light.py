@@ -33,7 +33,7 @@ while True:
     if exit_loop:
         break # 跳出外部循环
 # 全局变量
-pid_controller = raspberry_king.IncrementalPID(kp_x=0.02, ki_x=0.00, kd_x=0.0001, kp_y=0.0185, ki_y=0.00, kd_y=0.0001)
+pid_controller = raspberry_king.IncrementalPID(kp_x=0.03, ki_x=0.00, kd_x=0.0, kp_y=0.03, ki_y=0.00, kd_y=0.0)
 cap = raspberry_king.Video(camera=cam)
 servo_control = raspberry_king.ServoSTM32()
 key = raspberry_king.KeyInput(pin_set=21)
@@ -104,22 +104,25 @@ def interpolate(start_x, start_y, end_x, end_y, num_points):
     return list(zip(x_values, y_values))
 
 def move_to_point(start_x, start_y, end_x, end_y):
-    num_points = 50  # 你可以根据你的需求调整这个值
+    num_points = 5  # 你可以根据你的需求调整这个值
     points = interpolate(start_x, start_y, end_x, end_y, num_points)
+    # print(points)
     for target_x, target_y in points:
-        pid_controller.target_x = target_x
-        pid_controller.target_y = target_y
-        pid_controller.reached = 0
-        while pid_controller.reached == 0:
-            cap.read_frame(cut=1)
-            cap.show_frame(wait_set=10)
-            cap.gray_find_red_light()
-            current_x, current_y = cap.cX, cap.cY
-            if (current_x != 0) and (current_y != 0):
-                pid_controller.calculate_pid_increment(current_x, current_y,flag_set=1)
-                servo_control.control_servo(-int(pid_controller.pid_output_y * 10),-int(pid_controller.pid_output_x * 10))
-                print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
-    print("Reached final target!_______________________",current_x,current_y)
+        move_to_one_point(target_x, target_y,set=1)
+        # print(target_x,target_y)
+    #     pid_controller.target_x = target_x
+    #     pid_controller.target_y = target_y
+    #     pid_controller.reached = 0
+    #     while pid_controller.reached == 0:
+    #         cap.read_frame(cut=1)
+    #         cap.show_frame(wait_set=10)
+    #         cap.gray_find_red_light()
+    #         current_x, current_y = cap.cX, cap.cY
+    #         if (current_x != 0) and (current_y != 0):
+    #             pid_controller.calculate_pid_increment(current_x, current_y,flag_set=1)
+    #             servo_control.control_servo(-int(pid_controller.pid_output_y * 10),-int(pid_controller.pid_output_x * 10))
+    #             print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
+    # print("Reached final target!_______________________",current_x,current_y)
 
 def callback_function(channel):
     global pid_enabled
@@ -130,7 +133,12 @@ def callback_function(channel):
     pid_enabled = not pid_enabled  # 切换PID使能标志的状态
 
 if __name__ == "__main__":
-    # move_to_point(240, 240, 65, 65)
+    move_to_point(65, 65, 415, 65)
+    move_to_point(415, 65, 415, 415)
+    move_to_point(415, 415, 65, 415)
+    move_to_point(65, 415, 65, 65)
+    # move_to_point(65, 65, 415, 65)
+    # move_to_point(415, 65, 65, 65)
     # move_to_one_point(240, 240)
     # move_to_one_point(65, 65)
     # move_to_one_point(415, 65)
