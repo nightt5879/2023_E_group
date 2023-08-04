@@ -17,6 +17,7 @@ class KeyInput:
         :param pin_set: 设置的按键GPIO
         """
         self.pin = pin_set
+        self.pin_pressed = 0
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
     def read_input(self):
@@ -26,13 +27,14 @@ class KeyInput:
         """
         input_val = None
         if GPIO.input(self.pin) == GPIO.LOW:
-            time.sleep(0.05)  # 按键消除抖动
+            time.sleep(0.001)  # 按键消除抖动
             if GPIO.input(self.pin) == GPIO.LOW:
-                input_val = 0
-        # elif GPIO.input(self.pin) == GPIO.HIGH:
-        #     time.sleep(0.1)  # 按键消除抖动
-        #     if GPIO.input(self.pin) == GPIO.HIGH:
-        #         input_val = 1
+                self.pin_pressed = 1
+        elif GPIO.input(self.pin) == GPIO.HIGH:
+            time.sleep(0.001)  # 按键消除抖动
+            if GPIO.input(self.pin) == GPIO.HIGH and self.pin_pressed == 1:  # 说明之前按下了
+                self.pin_pressed = 0 # 清空按键按下状态
+                input_val = 0 # 这说明完成了按下到抬起的一个完整的按键动作
         return input_val
 
     def wait_press(self):
@@ -44,6 +46,44 @@ class KeyInput:
         while self.read_input() != 0:
             pass
         print("key pressed")
+
+class SixKeyInput:
+    """
+    六个按键输入的类
+    """
+    def __init__(self):
+        """
+        初始化
+        :param pin_set: 设置的按键GPIO
+        """
+        self.pin = [18, 23, 24, 25, 4, 5]
+        for i in range(6):
+            GPIO.setup(self.pin[i], GPIO.IN, pull_up_down=GPIO.PUD_UP) # 初始化六个按键
+        self.pin_val = [1, 1, 1, 1, 1, 1]  # 初始化按键状态
+        self.pin_pressed = [0, 0, 0, 0, 0, 0]  # 初始化按键按下状态
+
+    def read_input(self):
+        """
+        读取按键输入
+        :return: 返回按键输入的状态
+        """
+        for i in range(6):
+            if GPIO.input(self.pin[i]) == GPIO.LOW:
+                time.sleep(0.001)  # 按键消除抖动
+                if GPIO.input(self.pin[i]) == GPIO.LOW:
+                    self.pin_val[i] = 0
+            elif GPIO.input(self.pin[i]) == GPIO.HIGH:
+                time.sleep(0.001)
+                if GPIO.input(self.pin[i]) == GPIO.HIGH and self.pin_val[i] == 0:  # 说明之前按下了
+                    self.pin_val[i] = 1  # 清空按键按下状态
+                    self.pin_pressed[i] = 1  # 这说明完成了按下到抬起的一个完整的按键动作
+
+    def flash_all_key(self):
+        """
+        清空按键的状态
+        """
+        for i in range(6):
+            self.pin_pressed[i] = 0
 
 class Video:
     """

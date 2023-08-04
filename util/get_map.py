@@ -164,7 +164,7 @@ def show_lcd(frame):
     image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     image = image.resize((320, 240), Image.ANTIALIAS)
     image = image.filter(ImageFilter.SHARPEN)
-    # image = image.rotate(180)
+    image = image.rotate(180)
     disp.ShowImage(image)
 
 

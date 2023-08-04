@@ -139,8 +139,9 @@ if __name__ == "__main__":
     # move_to_one_point(65, 65)
     GPIO.add_event_detect(21, GPIO.FALLING, callback=callback_function, bouncetime=300)
     while True:
-        move_to_one_point(240, 240)
-        move_to_one_point(200, 200)
+        pass
+        # move_to_one_point(240, 240)
+        # move_to_one_point(200, 200)
         # move_to_one_point(65, 65)
         # time.sleep(1)
         # move_to_one_point(415, 65)
