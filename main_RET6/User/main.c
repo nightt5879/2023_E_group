@@ -70,7 +70,8 @@ int main(void)
 	{	
 //		Serial_SendByte(0x01);
 //		Serial_SendPacket();
-		set_speed(motor1_speed_set,motor2_speed_set);
+		if ((motor1_speed_set != 0) || (motor2_speed_set != 0))
+			set_speed(motor1_speed_set,motor2_speed_set);
 		Delay_us(1);
 	}
 }

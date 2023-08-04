@@ -7,6 +7,7 @@ from util.get_map import show_lcd
 import cv2
 import numpy as np
 import time
+import RPi.GPIO as GPIO
 
 # 摄像头反复调用
 exit_loop = False
@@ -32,25 +33,40 @@ while True:
     if exit_loop:
         break # 跳出外部循环
 # 全局变量
-pid_controller = raspberry_king.IncrementalPID(kp_x=0.02, ki_x=0.00, kd_x=0.0, kp_y=0.02, ki_y=0.00, kd_y=0.0)
+pid_controller = raspberry_king.IncrementalPID(kp_x=0.02, ki_x=0.00, kd_x=0.0001, kp_y=0.0185, ki_y=0.00, kd_y=0.0001)
 cap = raspberry_king.Video(camera=cam)
 servo_control = raspberry_king.ServoSTM32()
+key = raspberry_king.KeyInput(pin_set=21)
+pid_enabled = True  # 增加一个PID使能标志
 def move_to_one_point(target_x, target_y,set=1):
+    print("start a new point:",target_x,target_y)
     pid_controller.target_x = target_x
     pid_controller.target_y = target_y
     pid_controller.reached = 0
+    global pid_enabled
     while pid_controller.reached == 0:
         cap.read_frame(cut=1)
         cap.show_frame(wait_set=10)
+        cap.draw_circle_find()
+        cap.show_frame(window_name="init", img_show=cap.copy)
         cap.gray_find_red_light()
         current_x, current_y = cap.cX, cap.cY
-        if (current_x != 0) and (current_y != 0):
+        # if key.read_input() == 0:  # 如果检测到按键
+        #     print(pid_enabled)
+        #     # servo_control.control_stop()
+        #     if pid_enabled:
+        #         servo_control.control_stop()
+                # servo_control.control_servo(1, 0)
+            # pid_enabled = not pid_enabled  # 切换PID使能标志的状态
+        if pid_enabled and (current_x != 0) and (current_y != 0):
             pid_controller.calculate_pid_increment(current_x, current_y,flag_set=set)
-            servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
-                                        -int(pid_controller.pid_output_x * 10))
+            if (-int(pid_controller.pid_output_y * 10) != 0 or -int(pid_controller.pid_output_x * 10) != 0):
+                servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
+                                            -int(pid_controller.pid_output_x * 10))
             # print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
-    # pid_controller.reached = 0  #重置一下标志位
-    # servo_control.control_servo(0,0)
+            print("x:", -int(pid_controller.pid_output_y * 10), "y:", -int(pid_controller.pid_output_x * 10))
+        time.sleep(0.01)
+    servo_control.control_stop()
     print("Reached final target!",current_x,current_y)
 
 def move_to_one_point_test(target_x, target_y,set=1,set_speed = 1):
@@ -105,13 +121,33 @@ def move_to_point(start_x, start_y, end_x, end_y):
                 print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
     print("Reached final target!_______________________",current_x,current_y)
 
+def callback_function(channel):
+    global pid_enabled
+    print(pid_enabled)
+        # servo_control.control_stop()
+    if pid_enabled:
+        servo_control.control_stop()
+    pid_enabled = not pid_enabled  # 切换PID使能标志的状态
+
 if __name__ == "__main__":
     # move_to_point(240, 240, 65, 65)
-    move_to_one_point(240, 240)
-    move_to_one_point(65, 65)
-    move_to_one_point(415, 65)
-    move_to_one_point(415, 415)
-    move_to_one_point(65, 415)
-    move_to_one_point(65, 65)
+    # move_to_one_point(240, 240)
+    # move_to_one_point(65, 65)
+    # move_to_one_point(415, 65)
+    # move_to_one_point(415, 415)
+    # move_to_one_point(65, 415)
+    # move_to_one_point(65, 65)
+    GPIO.add_event_detect(21, GPIO.FALLING, callback=callback_function, bouncetime=300)
     while True:
-        pass
+        move_to_one_point(240, 240)
+        move_to_one_point(200, 200)
+        # move_to_one_point(65, 65)
+        # time.sleep(1)
+        # move_to_one_point(415, 65)
+        # time.sleep(1)
+        # move_to_one_point(415, 415)
+        # time.sleep(1)
+        # move_to_one_point(65, 415)
+        # time.sleep(1)
+        # move_to_one_point(65, 65)
+        # time.sleep(1)

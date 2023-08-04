@@ -26,13 +26,13 @@ class KeyInput:
         """
         input_val = None
         if GPIO.input(self.pin) == GPIO.LOW:
-            time.sleep(0.1)  # 按键消除抖动
+            time.sleep(0.05)  # 按键消除抖动
             if GPIO.input(self.pin) == GPIO.LOW:
                 input_val = 0
-        elif GPIO.input(self.pin) == GPIO.HIGH:
-            time.sleep(0.1)  # 按键消除抖动
-            if GPIO.input(self.pin) == GPIO.HIGH:
-                input_val = 1
+        # elif GPIO.input(self.pin) == GPIO.HIGH:
+        #     time.sleep(0.1)  # 按键消除抖动
+        #     if GPIO.input(self.pin) == GPIO.HIGH:
+        #         input_val = 1
         return input_val
 
     def wait_press(self):
@@ -108,6 +108,30 @@ class Video:
         start_point = (80, 0)
         end_point = (560, 480)
         color = (0, 255, 0)
+        cv2.rectangle(self.copy, start_point, end_point, color, thickness)
+
+    def draw_circle_find(self):
+        self.copy = self.frame.copy()
+        # 圆心坐标 (320, 240)，半径为 50，红色，线条宽度为 -1，即填充整个圆
+        center = (240, 240)
+        radius = 2
+        color = (0, 0, 255)  # 红色 (B, G, R)
+        thickness = -1
+        # 绘制圆圈(中心的小红点）
+        cv2.circle(self.copy, center, radius, color, thickness)
+        radius = 8
+        color = (0, 255, 0)  # 绿色
+        thickness = 1
+        # 绘制圆圈(外侧的大圆圈）
+        cv2.circle(self.copy, center, radius, color, thickness)
+
+        # 矩形框的左上角和右下角坐标
+        start_point = (65, 65)
+        end_point = (415, 415)
+        # 矩形框的颜色为蓝色 (B, G, R)，线条宽度为 2
+        color = (255, 0, 0)
+        thickness = 2
+        # 绘制矩形框
         cv2.rectangle(self.copy, start_point, end_point, color, thickness)
 
     def hsv_frame(self):
@@ -189,10 +213,11 @@ class Video:
         cv2.imshow('Gray_blurred', blurred)
 
         # 设置阈值
-        _, thresh = cv2.threshold(blurred, 195, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(blurred, 220, 255, cv2.THRESH_BINARY)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-        thresh = cv2.dilate(thresh, kernel, iterations=2)
         thresh = cv2.erode(thresh, kernel, iterations=1)
+        thresh = cv2.dilate(thresh, kernel, iterations=1)
+
         cv2.imshow('Threshold', thresh)
 
         # 找到轮廓
@@ -571,20 +596,13 @@ class IncrementalPID:
         self.delta_error_x = self.prev_error_x
         self.prev_error_x = error_x
         self.pid_output_x += delta_error_x
-
-
-        if -5 < error_y < 5:
-            # pass
-            self.ki_y = 0.001
-        else:
-            self.ki_y = 0
         delta_error_y = self.kp_y * (error_y - self.prev_error_y) + self.ki_y * error_y + self.kd_y * (
                     error_y - 2 * self.prev_error_y + self.delta_error_y)
         self.delta_error_y = self.prev_error_y
         self.prev_error_y = error_y
         self.pid_output_y += delta_error_y
 
-        error_threshold = 15 # 你可以根据你的需求调整这个值
+        error_threshold = 10 # 你可以根据你的需求调整这个值
         error_x = abs(self.target_x - current_x)
         error_y = abs(self.target_y - current_y)
         if error_x < error_threshold and error_y < error_threshold:
@@ -628,35 +646,36 @@ class ServoSTM32:
         :param servo_2_speed: servo 2 speed
         :return: None
         """
-        if servo_1_speed == 0 and servo_2_speed == 0:
-            self.data[1] = 0x00
-            self.data[2] = 0x00
-            self.data[3] = 0x00
-            self.data[4] = 0x00
-            self.data[5] = 0x00
-            self.data[6] = 0x00
+        # print(1)
+        if servo_1_speed <= 0:
+            self.data[1] = 0x01
+            speed = abs(servo_1_speed)
+            self.data[2] = speed >> 8
+            self.data[3] = speed & 0xFF
         else:
-            # print(1)
-            if servo_1_speed < 0:
-                self.data[1] = 0x01
-                speed = abs(servo_1_speed)
-                self.data[2] = speed >> 8
-                self.data[3] = speed & 0xFF
-            else:
-                self.data[1] = 0x00
-                speed = servo_1_speed
-                self.data[2] = speed >> 8
-                self.data[3] = speed & 0xFF
-            if servo_2_speed < 0:
-                self.data[4] = 0x01
-                speed = abs(servo_2_speed)
-                self.data[5] = speed >> 8
-                self.data[6] = speed & 0xFF
-            else:
-                self.data[4] = 0x00
-                speed = servo_2_speed
-                self.data[5] = speed >> 8
-                self.data[6] = speed & 0xFF
+            self.data[1] = 0x00
+            speed = servo_1_speed
+            self.data[2] = speed >> 8
+            self.data[3] = speed & 0xFF
+        if servo_2_speed <= 0:
+            self.data[4] = 0x01
+            speed = abs(servo_2_speed)
+            self.data[5] = speed >> 8
+            self.data[6] = speed & 0xFF
+        else:
+            self.data[4] = 0x00
+            speed = servo_2_speed
+            self.data[5] = speed >> 8
+            self.data[6] = speed & 0xFF
+        self.car_com1.write(self.data)
+
+    def control_stop(self):
+        self.data[1] = 0x00  # 或其他有效的停止标志
+        self.data[2] = 0x00
+        self.data[3] = 0x00
+        self.data[4] = 0x00
+        self.data[5] = 0x00
+        self.data[6] = 0x00
         self.car_com1.write(self.data)
 # 示例用法
 if __name__ == "__main__":

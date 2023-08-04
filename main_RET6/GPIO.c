@@ -84,23 +84,26 @@ void set_angle(uint8_t servo, float angle)
   pwm_set_duty_cycle(channel, duty_cycle);
 }
 
-// 设置伺服电机的速度和方向
-void set_speed(int16_t motor1_speed, int16_t motor2_speed)
-{
-  // 计算新的角度
-  motor1_angle += motor1_speed * ANGLE_INCREMENT; // ANGLE_INCREMENT是每步的角度变化
-  motor2_angle += motor2_speed * ANGLE_INCREMENT;
+  // 设置伺服电机的速度和方向
+  void set_speed(int16_t motor1_speed, int16_t motor2_speed)
+  {
+    // 计算新的角度
+    if ((motor1_speed != 0) || (motor2_speed != 0))
+    {
+        motor1_angle += motor1_speed * ANGLE_INCREMENT; // ANGLE_INCREMENT是每步的角度变化
+        motor2_angle += motor2_speed * ANGLE_INCREMENT;
+    }
 
-  // 限制角度范围
-  if (motor1_angle > MAX_ANGLE_Y) motor1_angle = MAX_ANGLE_Y;
-  if (motor1_angle < MIN_ANGLE_Y) motor1_angle = MIN_ANGLE_Y;
-  if (motor2_angle > MAX_ANGLE_X) motor2_angle = MAX_ANGLE_X;
-  if (motor2_angle < MIN_ANGLE_X) motor2_angle = MIN_ANGLE_X;
+    // 限制角度范围
+    if (motor1_angle > MAX_ANGLE_Y) motor1_angle = MAX_ANGLE_Y;
+    if (motor1_angle < MIN_ANGLE_Y) motor1_angle = MIN_ANGLE_Y;
+    if (motor2_angle > MAX_ANGLE_X) motor2_angle = MAX_ANGLE_X;
+    if (motor2_angle < MIN_ANGLE_X) motor2_angle = MIN_ANGLE_X;
 
-  // 设置电机角度
-  set_angle(0, motor1_angle);
-  set_angle(1, motor2_angle);
-}
+    // 设置电机角度
+    set_angle(0, motor1_angle);
+    set_angle(1, motor2_angle);
+  }
 
 
 /**

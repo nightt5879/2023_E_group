@@ -257,7 +257,8 @@ void USART2_IRQHandler(void)
                 Serial_SendPacket();
                 RxState = 0;
                 Serial_RxFlag = 1;
-                if ((Serial_RxPacket[1]==0) && (Serial_RxPacket[2]==0) && (Serial_RxPacket[4]==0) && (Serial_RxPacket[5]==0))
+                if ((Serial_RxPacket[1] == 0) && (Serial_RxPacket[2] == 0) &&
+                    (Serial_RxPacket[4] == 0) && (Serial_RxPacket[5] == 0)) 
                 {
                     motor1_speed_set = 0;
                     motor2_speed_set = 0;
