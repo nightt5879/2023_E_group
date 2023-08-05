@@ -33,19 +33,41 @@ while True:
     if exit_loop:
         break # 跳出外部循环
 # 全局变量
-pid_controller = raspberry_king.IncrementalPID(kp_x=0.02, ki_x=0.00, kd_x=0.0, kp_y=0.02, ki_y=0.00, kd_y=0.0)
+pid_controller = raspberry_king.IncrementalPID(kp_x=0.06, ki_x=0.00, kd_x=0.0, kp_y=0.06, ki_y=0.00, kd_y=0.00)
 cap = raspberry_king.Video(camera=cam)
 key = raspberry_king.KeyInput(pin_set=21)
 servo_control = raspberry_king.ServoSTM32()  # 串口发送给STM32控制舵机
 pid_enabled = True  # 增加一个PID使能标志
 
-def move_to_one_point(target_x, target_y,set=1):
-    print("start a new point:",target_x,target_y)
+# 设置BCM引脚编号模式
+GPIO.setmode(GPIO.BCM)
 
-    global pid_enabled
+# 定义引脚编号
+PWM_PIN = 25
 
+# 设置引脚为输出模式
+GPIO.setup(PWM_PIN, GPIO.OUT)
 
-    print("Reached final target!",current_x,current_y)
+# 创建PWM实例，频率为2KHz
+pwm = GPIO.PWM(PWM_PIN, 3000)
+
+# 启动PWM，初始占空比为50%
+pwm.start(0)
+GPIO.setmode(GPIO.BCM)
+
+# 定义引脚编号
+PIN = 24
+
+# 设置引脚为输出模式
+GPIO.setup(PIN, GPIO.OUT)
+
+def get_the_target():
+    GPIO.output(PIN, GPIO.HIGH)  # 设置高电平
+    pwm.ChangeDutyCycle(50)
+
+def not_get_the_target():
+    GPIO.output(PIN, GPIO.LOW)  # 设置低电平
+    pwm.ChangeDutyCycle(0)
 
 def callback_function(channel):
     global pid_enabled
@@ -56,22 +78,31 @@ def callback_function(channel):
 if __name__ == '__main__':
     target_x = 320
     target_y = 240
+    thr = 10
     GPIO.add_event_detect(21, GPIO.FALLING, callback=callback_function, bouncetime=300)  # 开启事件检测
     pid_controller.target_x = target_x
     pid_controller.target_y = target_y
     servo_control.control_stop()
     while True:
+        cap.read_frame()
+        cap.show_frame(wait_set=10)
+        cap.show_frame(window_name="init", img_show=cap.copy)
+        cap.gray_find_red_light()
+        current_x, current_y = cap.cX, cap.cY
         if pid_enabled:
-            cap.read_frame()
-            cap.show_frame(wait_set=10)
-            cap.show_frame(window_name="init", img_show=cap.copy)
-            cap.gray_find_red_light()
-            current_x, current_y = cap.cX, cap.cY
-            if pid_enabled and (current_x != 0) and (current_y != 0):
-                pid_controller.calculate_pid_increment(current_x, current_y, flag_set=set)
-                if (-int(pid_controller.pid_output_y * 10) != 0 or -int(pid_controller.pid_output_x * 10) != 0):
-                    servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
-                                                int(pid_controller.pid_output_x * 10))
-                # print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
-                print("x:", int(pid_controller.pid_output_y * 10), "y:", -int(pid_controller.pid_output_x * 10))
-            # 追踪
+            if abs(current_x - target_x) > thr or abs(current_y - target_y) > thr:
+                not_get_the_target()
+                if pid_enabled and (current_x != 0) and (current_y != 0):
+                    pid_controller.calculate_pid_increment(current_x, current_y, flag_set=set,not_break=0)
+                    if (-int(pid_controller.pid_output_y * 10) != 0 or -int(pid_controller.pid_output_x * 10) != 0):
+                        servo_control.control_servo(-int(pid_controller.pid_output_y * 10),
+                                                    int(pid_controller.pid_output_x * 10))
+                    # print("x:", pid_controller.pid_output_x, "y:", pid_controller.pid_output_y)
+                    # print("x:", int(pid_controller.pid_output_y * 10), "y:", -int(pid_controller.pid_output_x * 10))
+                    print(current_x, current_y)
+                # 追踪
+            else:
+                print("target done")
+                servo_control.control_stop()
+                # 说明到达了
+                get_the_target()

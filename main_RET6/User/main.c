@@ -67,6 +67,7 @@ int main(void)
 
 
 	test_flag = 0;
+	//motor1_speed_set = 10;
 	while (1)
 	{	
 //		Serial_SendByte(0x01);
@@ -91,7 +92,7 @@ int main(void)
 		// if (test_flag >= 6000)
 		// 	break;
 		// Delay_ms(100);
-		Delay_us(1);
+		Delay_us(100);
 	}
 }
 

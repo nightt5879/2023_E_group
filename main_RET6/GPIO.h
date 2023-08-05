@@ -15,14 +15,14 @@ void set_angle(uint8_t servo, float angle);
 
 
 #define MID_X 135
-#define MID_Y 105  // 135
+#define MID_Y 105  // 75
 #define ANGLE_INCREMENT 0.00001f
 #define MIN_ANGLE 0
 #define MAX_ANGLE 270
 #define MAX_ANGLE_X 165
 #define MIN_ANGLE_X 105
-#define MIN_ANGLE_Y 70  // 40
-#define MAX_ANGLE_Y 140       // 165
+#define MIN_ANGLE_Y 100  // 40
+#define MAX_ANGLE_Y 165         // 110
 
 
 #endif

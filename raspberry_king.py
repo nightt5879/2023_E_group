@@ -184,8 +184,8 @@ class Video:
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         # 裁剪成框图内的图像
         hsv = hsv[10:470, 80:560]
-        lower_black = np.array([0, 40, 0])
-        upper_black = np.array([180, 255, 75])
+        lower_black = np.array([0, 12, 200])
+        upper_black = np.array([180, 255, 255])
         # 使用HSV阈值过滤黑色
         mask = cv2.inRange(hsv, lower_black, upper_black)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
@@ -253,7 +253,7 @@ class Video:
         cv2.imshow('Gray_blurred', blurred)
 
         # 设置阈值
-        _, thresh = cv2.threshold(blurred, 210, 255, cv2.THRESH_BINARY)
+        _, thresh = cv2.threshold(blurred, 220, 255, cv2.THRESH_BINARY)
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
 
         thresh = cv2.dilate(thresh, kernel, iterations=2)
@@ -635,11 +635,16 @@ class IncrementalPID:
         else:  # 没有达到
             self.reached_flag = 0  # 清空稳态位置
 
-    def calculate_pid_increment(self, current_x, current_y, flag_set=5):
+    def calculate_pid_increment(self, current_x, current_y, flag_set=5,not_break=1):
         # 计算X方向的误差
         # 计算Y方向的误差
+        set_th = 1
         error_y = self.target_y - current_y
         error_x = self.target_x - current_x
+        # if abs(error_x) < set_th:
+        #     error_x = 0
+        # if abs(error_y) < set_th:
+        #     error_y = 0
         # if (-5 < error_x < 5) and (-5 < error_y < 5):
         #     # pass
         #     self.ki_x = 0.001
@@ -658,18 +663,19 @@ class IncrementalPID:
         self.prev_error_y = error_y
         self.pid_output_y += delta_error_y
 
-        error_threshold = self.threshold # 你可以根据你的需求调整这个值
-        error_x = abs(self.target_x - current_x)
-        error_y = abs(self.target_y - current_y)
-        if error_x < error_threshold and error_y < error_threshold:
-            self.reached_flag += 1
-            if self.reached_flag >= flag_set:  # 连续多次稳定才停下
-                print("reached")
-                self.reached = 1
-                # 清空所有的值
-                self.reset()
-        else:  # 没有达到
-            self.reached_flag = 0  # 清空稳态位置
+        if not_break:
+            error_threshold = self.threshold # 你可以根据你的需求调整这个值
+            error_x = abs(self.target_x - current_x)
+            error_y = abs(self.target_y - current_y)
+            if error_x < error_threshold and error_y < error_threshold:
+                self.reached_flag += 1
+                if self.reached_flag >= flag_set:  # 连续多次稳定才停下
+                    print("reached")
+                    self.reached = 1
+                    # 清空所有的值
+                    self.reset()
+            else:  # 没有达到
+                self.reached_flag = 0  # 清空稳态位置
 
     def reset(self):
         """
