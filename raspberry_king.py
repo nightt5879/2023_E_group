@@ -347,12 +347,14 @@ class Video:
         # 确保只有两个轮廓
         if len(merged_contours) == 2:
             # 取两个轮廓的平均值得到中间轮廓
-            weight_outer = 0.7
-            weight_inner = 0.3
-
+            weight_outer = 0.8
+            weight_inner = 0.2
+            # 合并前确保轮廓对齐
+            merged_contours[0], merged_contours[1] = self.align_contours(merged_contours[0], merged_contours[1])
             middle_contour = weight_outer * merged_contours[0] + weight_inner * merged_contours[1]
             # 排序角点顺时针
             middle_contour_sorted = self.sort_clockwise(middle_contour)
+
             # 保存到self.list
             self.points_list = middle_contour_sorted.tolist()
             # 将结果转换为整数坐标
@@ -404,6 +406,17 @@ class Video:
                         merged_flags[j] = True
 
         return merged_contours
+
+    def align_contours(self, contour1, contour2):
+        # 寻找每个轮廓的左下角
+        ref_index1 = np.argmin(-contour1[:, 1] + contour1[:, 0])
+        ref_index2 = np.argmin(-contour2[:, 1] + contour2[:, 0])
+
+        # 重新排序轮廓，使左下角的点在首位
+        aligned_contour1 = np.roll(contour1, shift=-ref_index1, axis=0)
+        aligned_contour2 = np.roll(contour2, shift=-ref_index2, axis=0)
+
+        return aligned_contour1, aligned_contour2
 
     def sort_clockwise(self, points):
         """

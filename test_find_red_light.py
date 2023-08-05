@@ -148,7 +148,7 @@ if __name__ == "__main__":
     # move_to_point(65, 65, 415, 65)
     # move_to_point(415, 65, 65, 65)
     # move_to_one_point(240, 240)
-    move_to_one_point(65, 65)
+    # move_to_one_point(65, 65)
     # move_to_one_point(415, 65)
     # move_to_one_point(415, 415)
     # move_to_one_point(65, 415)
