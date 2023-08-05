@@ -43,7 +43,7 @@ six_key = raspberry_king.SixKeyInput()  # 用于选择功能的面包板按键�
 """
 key = raspberry_king.KeyInput(pin_set=21)  # 板子上的按键（用于随时暂停移动）
 cap = raspberry_king.Video(camera=cam)  # 摄像头的函数
-servo_control = raspberry_king.ServoSTM32()  # 串口发送给STM32控制舵机
+
 pid_controller = raspberry_king.IncrementalPID(kp_x=0.015, ki_x=0.00, kd_x=0.0, kp_y=0.015, ki_y=0.00, kd_y=0.0)  # pid对象
 # 全局参数
 pid_enabled = True  # 移动暂停与否的标志
